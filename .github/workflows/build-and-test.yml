@@ -112,7 +112,10 @@ jobs:
             exit 0
           } else {
             echo "❌ TEST FAILED"
+            eecho "Read:"
             echo $output
+            echo "Expected:"
+            echo $expected_text
             exit 1
           }
 
