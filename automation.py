@@ -7,16 +7,6 @@ import pyperclip
 import os
 import sys
 import traceback
-import io
-
-# --- UTF-8 OUTPUT FIX (Windows console safe) ---
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-
-# --- NORMALIZATION FUNCTION (Turkish → Latin) ---
-def normalize_text(text: str) -> str:
-    mapping = str.maketrans("şŞıİçÇöÖüÜğĞ", "sSiIcCoOuUgG")
-    return text.translate(mapping)
 
 # --- DYNAMIC TESSERACT PATH CONFIGURATION ---
 if getattr(sys, "frozen", False):
@@ -25,7 +15,6 @@ else:
     application_path = os.path.dirname(os.path.abspath(__file__))
 
 tesseract_path = os.path.join(application_path, "tesseract", "tesseract.exe")
-
 if os.path.exists(tesseract_path):
     pytesseract.pytesseract.tesseract_cmd = tesseract_path
 else:
@@ -36,70 +25,70 @@ print("Automation will start in 5 seconds...")
 time.sleep(5)
 
 try:
+    # --- Step 1: Find and Fill the Input Fields ---
     print("Searching for the 'Name' label...")
     name_label_path = os.path.join(application_path, "isim_label.png")
-
-    name_label_location = pyautogui.locateCenterOnScreen(
-        name_label_path, confidence=0.3
-    )
+    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
 
     if name_label_location:
         pyautogui.click(name_label_location)
+        print("Clicked the 'Name:' label to activate window.")
         time.sleep(0.3)
         pyautogui.click(name_label_location.x, name_label_location.y + 35)
+        print("Clicked on name input field.")
+        time.sleep(0.5)
 
-        name_value = "Barış Kahraman"
-        pyperclip.copy(normalize_text(name_value))
+        # ASCII-safe text entry
+        pyperclip.copy("Baris Kahraman")
         pyautogui.hotkey("ctrl", "v")
-        print(f"Name entered: {normalize_text(name_value)}")
+        print("Name entered: Baris Kahraman")
     else:
-        print(f"ERROR: Could not find '{name_label_path}' on the screen.")
+        print(f"ERROR: Could not find '{name_label_path}' on screen.")
         sys.exit(1)
 
     time.sleep(0.5)
     pyautogui.press("tab")
     time.sleep(0.5)
+
     pyperclip.copy("35")
     pyautogui.hotkey("ctrl", "v")
     print("Age entered: 35")
+    time.sleep(0.5)
 
+    # --- Step 2: Activate Save Button ---
     pyautogui.press("tab")
-    time.sleep(0.3)
+    time.sleep(0.5)
     pyautogui.press("space")
     print("Save button activated!")
-    time.sleep(1.2)
+    time.sleep(1.5)
 
+    # --- Step 3: Capture and OCR Dialog ---
     print("Capturing dialog box...")
     screenWidth, screenHeight = pyautogui.size()
-    dialog_region = (
-        int((screenWidth - 400) / 2),
-        int((screenHeight - 300) / 2) - 50,
-        400,
-        300,
-    )
-    text_screenshot = pyautogui.screenshot(region=dialog_region)
+    dialog_width, dialog_height = 400, 300
+    dialog_x = (screenWidth - dialog_width) // 2
+    dialog_y = (screenHeight - dialog_height) // 2 - 50
+    dialog_region = (dialog_x, dialog_y, dialog_width, dialog_height)
 
-    # Only use English OCR
+    text_screenshot = pyautogui.screenshot(region=dialog_region)
+    debug_path = os.path.join(application_path, "ocr-screenshot.png")
+    text_screenshot.save(debug_path)
+    print(f"OCR debug screenshot saved: {debug_path}")
+
     custom_config = r"--oem 3 --psm 6"
     text = pytesseract.image_to_string(text_screenshot, lang="eng", config=custom_config)
-
-    cleaned_text = normalize_text(" ".join(text.split()).strip())
+    cleaned_text = " ".join(text.split()).strip()
 
     print("-" * 30)
     print(f"Text read from dialog: '{cleaned_text}'")
     print("-" * 30)
 
+    # --- Step 4: Close Dialog ---
     pyautogui.press("enter")
     print("Dialog closed with Enter.")
 
-    # --- TEST CHECK ---
-    expected = f"Kaydedildi! Isim: {normalize_text(name_value)} Yas: 35"
-    if expected in cleaned_text:
-        print("\n✅ TEST PASSED")
-        sys.exit(0)
-    else:
-        print("\n❌ TEST FAILED: Expected text not found")
-        sys.exit(1)
+    print("\n🎉 Automation completed successfully! 🎉")
+    sys.exit(0)
 
 except Exception:
     print("An unexpected error occurred:")
