@@ -53,11 +53,11 @@ try:
         print("Clicked on the name input field.")
         time.sleep(0.5)
 
-        # Use the copy-paste method for reliability with special characters.
-        pyperclip.copy("Barış Kahraman")
+        # Use the copy-paste method for reliability. Changed to English name.
+        pyperclip.copy("John Doe")
         # Automatically select the correct paste shortcut for the OS.
         pyautogui.hotkey("ctrl" if sys.platform == "win32" else "command", "v")
-        print("Name entered: Baris Kahraman") # Log message uses ASCII-safe characters
+        print("Name entered: John Doe")
     else:
         # If the label is not found, the script cannot proceed.
         print(f"ERROR: Could not find '{isim_label_path}' on the screen.")
@@ -102,17 +102,15 @@ try:
 
     print("Sending screenshot to Tesseract for OCR...")
     
-    # --- FINAL FIX: Normalize the path for the command line ---
-    # Replace all Windows-style backslashes ('\') with forward slashes ('/').
-    # This prevents path parsing errors when passing the path to Tesseract.
+    # Normalize the path for the command line.
     tessdata_dir_path_normalized = tessdata_dir_path.replace('\\', '/')
     
     # Pass the clean, normalized path directly in the config.
     custom_config = f'--oem 3 --psm 6 --tessdata-dir "{tessdata_dir_path_normalized}"'
     
-    # Perform OCR on the screenshot using Turkish language data.
+    # Perform OCR on the screenshot using the English language data.
     text = pytesseract.image_to_string(
-        text_screenshot, lang="tur", config=custom_config
+        text_screenshot, lang="eng", config=custom_config
     )
     # Clean the OCR result from extra spaces and line breaks.
     cleaned_text = " ".join(text.split()).strip()
