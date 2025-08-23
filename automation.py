@@ -34,47 +34,41 @@ print("Automation will start in 5 seconds...")
 time.sleep(5)
 
 try:
-    # --- Step 1: Hedef Pencereyi Bul ve Öne Getir (Aşama 1) ---
+    # --- Step 1: Hedef Pencereyi Bul ve Aktif Hale Getir ---
     target_title = "İnşaat Asistanı - Demo"
     print(f"Searching for window with title: '{target_title}'")
     app_window = gw.getWindowsWithTitle(target_title)
 
-    if not app_window:
+    if app_window:
+        window = app_window[0]
+        print("Forcing window to the front...")
+        if window.isMinimized:
+            window.restore()
+        window.activate()
+        time.sleep(0.5)
+        if not window.isActive:
+            print("Window not active, trying to maximize and reactivate...")
+            window.maximize()
+            time.sleep(0.5)
+            window.activate()
+        print("Target window should now be in the foreground.")
+        time.sleep(1)
+    else:
         print(f"ERROR: Could not find window with title '{target_title}'")
         sys.exit(1)
 
-    window = app_window[0]
-    print("Forcing window to the front...")
-    if window.isMinimized:
-        window.restore()
-    window.activate()
-    time.sleep(0.5)
-    if not window.isActive:
-        window.maximize()
-        time.sleep(0.5)
-        window.activate()
-    print("Window brought to front.")
-    time.sleep(1)
-
-    # --- NİHAİ DÜZELTME: ODAĞI GARANTİLEMEK İÇİN BAŞLIK ÇUBUĞUNA TIKLA (Aşama 2) ---
-    if window.isActive:
-        # Pencerenin başlık çubuğunun sol üst kısmına tıklayarak odağı garantile
-        # Bu, resim aramadan daha güvenilir bir ilk adımdır.
-        title_bar_x = window.left + 50
-        title_bar_y = window.top + 10
-        print(f"Securing focus with a click at ({title_bar_x}, {title_bar_y}) on the title bar.")
-        pyautogui.click(title_bar_x, title_bar_y)
-        time.sleep(0.5)
-    else:
-        print("ERROR: Window is still not active after multiple attempts. Exiting.")
-        sys.exit(1)
-
-    # --- Step 2: Fill Input Fields (Aşama 3) ---
+    # --- Step 2: Fill Input Fields ---
     print("Searching for the 'Name' label...")
+    
+    # *** YENİDEN EKLENEN VE DÜZELTİLEN SATIR BURADA ***
     name_label_path = os.path.join(application_path, "isim_label.png")
+    
     name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
 
     if name_label_location:
+        pyautogui.click(name_label_location)
+        print("Clicked the 'Name:' label to activate window.")
+        time.sleep(0.3)
         pyautogui.click(name_label_location.x, name_label_location.y + 35)
         print("Clicked on name input field.")
         time.sleep(0.5)
@@ -82,13 +76,14 @@ try:
         pyautogui.hotkey("ctrl", "v")
         print("Name entered: Baris Kahraman")
     else:
-        print(f"ERROR: Could not find '{name_label_path}' even after focusing the window.")
+        print(f"ERROR: Could not find '{name_label_path}'")
         pyautogui.screenshot(os.path.join(application_path, "error_screenshot_label_not_found.png"))
         sys.exit(1)
 
     time.sleep(0.5)
     pyautogui.press("tab")
     time.sleep(0.5)
+
     pyperclip.copy("35")
     pyautogui.hotkey("ctrl", "v")
     print("Age entered: 35")
@@ -102,12 +97,12 @@ try:
     time.sleep(1.5)
 
     # --- Step 4: Capture Dialog Box and OCR ---
-    # (Kodun geri kalanı aynı, değişiklik yok)
     print("Capturing full screen...")
     full_screenshot = pyautogui.screenshot()
     full_screenshot_path = os.path.join(application_path, "full-screenshot.png")
     full_screenshot.save(full_screenshot_path)
     print(f"Full screen debug screenshot saved: {full_screenshot_path}")
+
     print("Capturing dialog box...")
     screenWidth, screenHeight = pyautogui.size()
     dialog_width = 400
@@ -119,12 +114,14 @@ try:
     screenshot_path = os.path.join(application_path, "ocr-screenshot.png")
     text_screenshot.save(screenshot_path)
     print(f"OCR debug screenshot saved: {screenshot_path}")
+
     custom_config = "--oem 3 --psm 6"
     text = pytesseract.image_to_string(text_screenshot, lang="eng", config=custom_config)
     cleaned_text = " ".join(text.split()).strip()
     print("-" * 30)
     print(f"Text read from dialog: '{cleaned_text}'")
     print("-" * 30)
+
     pyautogui.press("enter")
     print("Dialog closed with Enter.")
 
