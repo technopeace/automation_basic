@@ -13,6 +13,11 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
+# --- NORMALIZATION FUNCTION (Turkish → Latin) ---
+def normalize_text(text: str) -> str:
+    mapping = str.maketrans("şŞıİçÇöÖüÜğĞ", "sSiIcCoOuUgG")
+    return text.translate(mapping)
+
 # --- DYNAMIC TESSERACT PATH CONFIGURATION ---
 if getattr(sys, "frozen", False):
     application_path = os.path.dirname(sys.executable)
@@ -26,7 +31,6 @@ if os.path.exists(tesseract_path):
 else:
     print(f"ERROR: Tesseract not found at: {tesseract_path}")
     sys.exit(1)
-# --- END OF CONFIGURATION ---
 
 print("Automation will start in 5 seconds...")
 time.sleep(5)
@@ -43,9 +47,11 @@ try:
         pyautogui.click(name_label_location)
         time.sleep(0.3)
         pyautogui.click(name_label_location.x, name_label_location.y + 35)
-        pyperclip.copy("Barış Kahraman")
+
+        name_value = "Barış Kahraman"
+        pyperclip.copy(normalize_text(name_value))
         pyautogui.hotkey("ctrl", "v")
-        print("Name entered: Barış Kahraman")
+        print(f"Name entered: {normalize_text(name_value)}")
     else:
         print(f"ERROR: Could not find '{name_label_path}' on the screen.")
         sys.exit(1)
@@ -73,11 +79,11 @@ try:
     )
     text_screenshot = pyautogui.screenshot(region=dialog_region)
 
+    # Only use English OCR
     custom_config = r"--oem 3 --psm 6"
-    text = pytesseract.image_to_string(
-        text_screenshot, lang="tur", config=custom_config
-    )
-    cleaned_text = " ".join(text.split()).strip()
+    text = pytesseract.image_to_string(text_screenshot, lang="eng", config=custom_config)
+
+    cleaned_text = normalize_text(" ".join(text.split()).strip())
 
     print("-" * 30)
     print(f"Text read from dialog: '{cleaned_text}'")
@@ -86,8 +92,14 @@ try:
     pyautogui.press("enter")
     print("Dialog closed with Enter.")
 
-    print("\n🎉 Automation completed successfully! 🎉")
-    sys.exit(0)
+    # --- TEST CHECK ---
+    expected = f"Kaydedildi! Isim: {normalize_text(name_value)} Yas: 35"
+    if expected in cleaned_text:
+        print("\n✅ TEST PASSED")
+        sys.exit(0)
+    else:
+        print("\n❌ TEST FAILED: Expected text not found")
+        sys.exit(1)
 
 except Exception:
     print("An unexpected error occurred:")
