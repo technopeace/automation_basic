@@ -43,6 +43,7 @@ jobs:
       - name: Prepare Release Folder Structure
         run: |
           mkdir release_package
+          mkdir release_package/tesseract
           Copy-Item -Path "TesseractOCR/*" -Destination "release_package/tesseract" -Recurse
           Copy-Item -Path "dist/Automation.exe" -Destination "release_package/"
           Copy-Item -Path "isim_label.png" -Destination "release_package/"
