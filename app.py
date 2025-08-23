@@ -1,6 +1,7 @@
 # app.py
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import font as tkFont # Font ayarları için import ediyoruz
 
 def save_data():
     name = entry_name.get()
@@ -13,14 +14,19 @@ def save_data():
 # Pencere oluştur
 root = tk.Tk()
 root.title("İnşaat Asistanı - Demo")
-root.geometry("300x200")
+root.geometry("300x250") # Pencereyi biraz büyüttük
+
+# <<< DEĞİŞİKLİK BURADA: Daha büyük bir font tanımlıyoruz >>>
+# Kalın ve büyük bir font oluşturuyoruz ki pyautogui rahatça bulabilsin.
+buyuk_font = tkFont.Font(family="Helvetica", size=20, weight="bold")
 
 # Etiketler ve giriş alanları
-tk.Label(root, text="İsim:").pack(pady=5)
+# Etiketi oluştururken tanımladığımız büyük fontu kullanıyoruz.
+tk.Label(root, text="İsim:", font=buyuk_font).pack(pady=10)
 entry_name = tk.Entry(root)
 entry_name.pack()
 
-tk.Label(root, text="Yaş:").pack(pady=5)
+tk.Label(root, text="Yaş:", font=buyuk_font).pack(pady=10)
 entry_age = tk.Entry(root)
 entry_age.pack()
 
