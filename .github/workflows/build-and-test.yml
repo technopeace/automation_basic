@@ -78,28 +78,35 @@ jobs:
         run: Expand-Archive -Path "*.zip" -DestinationPath test_run
 
       - name: Run Integration Test
-        # Python'u UTF-8 modunda çalışmaya zorlayarak karakter hatalarını önler
         env:
           PYTHONUTF8: "1"
         run: |
-          # Hedef Tkinter uygulamasını (app.py) arka planda başlatır
           echo "Hedef uygulama başlatılıyor..."
           Start-Process python -ArgumentList "app.py" -WindowStyle Minimized
           
-          # Uygulamanın açılması için 5 saniye bekler
-          Start-Sleep -Seconds 5
+          echo "Uygulamanın tam olarak açılması için 10 saniye bekleniyor..."
+          Start-Sleep -Seconds 10
           
-          # Otomasyon .exe'sini çalıştırır ve çıktısını yakalar
+          echo "Hata ayıklama için ekran görüntüsü alınıyor..."
+          Add-Type -AssemblyName System.Windows.Forms
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bitmap.Save("debug-screenshot.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          
           echo "Otomasyon.exe çalıştırılıyor..."
-          $output = & "./test_run/Automation.exe"
+          $process = Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
           
-          # Çıktıyı ekrana yazdırır
-          echo "--- OTOMASYON ÇIKTISI ---"
+          $stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
+          $stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
+          $output = $stdout + $stderr
+          
+          echo "--- OTOMASYON ÇIKTISI (stdout + stderr) ---"
           echo $output
-          echo "-------------------------"
+          echo "-------------------------------------------"
           
-          # Çıktının beklenen metni içerip içermediğini kontrol eder
-          $expected_text = "Kaydedildi! isim: Baris Kahraman Yas: 35"
+          $expected_text = "Kaydedildi! İsim: Barış Kahraman Yaş: 35"
           if ($output -like "*$expected_text*") {
             echo "✅ TEST BAŞARILI: Beklenen metin çıktıda bulundu."
             exit 0
@@ -111,3 +118,11 @@ jobs:
             echo $expected_text
             exit 1
           }
+      
+      # Test başarısız olursa, hata ayıklama ekran görüntüsünü indirilebilir hale getirir
+      - name: Upload Debug Screenshot on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshot
+          path: debug-screenshot.png
