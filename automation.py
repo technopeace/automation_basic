@@ -2,8 +2,7 @@
 import sys
 import io
 
-# YENİ: Python'un standart çıktı ve hata akışlarını UTF-8 kullanmaya zorla
-# Bu, Windows'taki UnicodeEncodeError hatasını çözer.
+# Python'un standart çıktı ve hata akışlarını UTF-8 kullanmaya zorla
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 if sys.stderr.encoding != 'utf-8':
@@ -35,27 +34,39 @@ print("Automation will start in 5 seconds...")
 time.sleep(5)
 
 try:
-    # --- Step 1: Hedef Pencereyi Bul ve Aktif Hale Getir ---
+    # --- Step 1: Hedef Pencereyi Bul ve Aktif Hale Getir (GÜNCELLENDİ) ---
     target_title = "İnşaat Asistanı - Demo"
     print(f"Searching for window with title: '{target_title}'")
     app_window = gw.getWindowsWithTitle(target_title)
 
     if app_window:
         window = app_window[0]
-        window.activate()
+        
+        # Pencereyi öne getirmek için daha agresif bir yöntem
+        print("Forcing window to the front...")
+        if window.isMinimized:
+            window.restore()
+        
+        window.activate() # İlk aktivasyon denemesi
+        time.sleep(0.5)
+        
+        # Eğer hala aktif değilse, pencereyi büyütüp tekrar dene
         if not window.isActive:
+            print("Window not active, trying to maximize and reactivate...")
             window.maximize()
+            time.sleep(0.5)
             window.activate()
-        print("Target window activated and brought to front.")
-        time.sleep(1)
+            
+        print("Target window should now be in the foreground.")
+        time.sleep(1) # İşlemlerin oturması için bekle
     else:
         print(f"ERROR: Could not find window with title '{target_title}'")
         sys.exit(1)
 
     # --- Step 2: Fill Input Fields ---
     print("Searching for the 'Name' label...")
-    name_label_path = os.path.join(application_path, "isim_label.png")
-    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
+    # Pencereyi öne almayı başardığımız için confidence değerini yüksek tutabiliriz
+    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.8)
 
     if name_label_location:
         pyautogui.click(name_label_location)
@@ -69,6 +80,8 @@ try:
         print("Name entered: Baris Kahraman")
     else:
         print(f"ERROR: Could not find '{name_label_path}'")
+        # Hata durumunda tam ekran görüntüsü alıp hatayı daha net görelim
+        pyautogui.screenshot(os.path.join(application_path, "error_screenshot_label_not_found.png"))
         sys.exit(1)
 
     time.sleep(0.5)
@@ -87,6 +100,7 @@ try:
     print("Save button activated!")
     time.sleep(1.5)
 
+    # ... (kodun geri kalanı aynı)
     # --- Step 4: Capture Dialog Box and OCR ---
     print("Capturing full screen...")
     full_screenshot = pyautogui.screenshot()
