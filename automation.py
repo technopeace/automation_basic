@@ -7,6 +7,11 @@ import pyperclip
 import os
 import sys
 import traceback
+import io
+
+# --- UTF-8 OUTPUT FIX (Windows console safe) ---
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # --- DYNAMIC TESSERACT PATH CONFIGURATION ---
 if getattr(sys, "frozen", False):
@@ -27,7 +32,6 @@ print("Automation will start in 5 seconds...")
 time.sleep(5)
 
 try:
-    # --- Step 1: Fill the fields ---
     print("Searching for the 'Name' label...")
     name_label_path = os.path.join(application_path, "isim_label.png")
 
@@ -36,9 +40,9 @@ try:
     )
 
     if name_label_location:
-        pyautogui.click(name_label_location)  # Activate window
+        pyautogui.click(name_label_location)
         time.sleep(0.3)
-        pyautogui.click(name_label_location.x, name_label_location.y + 35)  # Input field
+        pyautogui.click(name_label_location.x, name_label_location.y + 35)
         pyperclip.copy("Barış Kahraman")
         pyautogui.hotkey("ctrl", "v")
         print("Name entered: Barış Kahraman")
@@ -53,14 +57,12 @@ try:
     pyautogui.hotkey("ctrl", "v")
     print("Age entered: 35")
 
-    # --- Step 2: Save ---
     pyautogui.press("tab")
     time.sleep(0.3)
     pyautogui.press("space")
     print("Save button activated!")
     time.sleep(1.2)
 
-    # --- Step 3: OCR dialog ---
     print("Capturing dialog box...")
     screenWidth, screenHeight = pyautogui.size()
     dialog_region = (
@@ -81,7 +83,6 @@ try:
     print(f"Text read from dialog: '{cleaned_text}'")
     print("-" * 30)
 
-    # --- Step 4: Close dialog (only with Enter, no image search) ---
     pyautogui.press("enter")
     print("Dialog closed with Enter.")
 
