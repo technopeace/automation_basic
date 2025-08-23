@@ -22,11 +22,9 @@ else:
 tesseract_path = os.path.join(application_path, "tesseract", "tesseract.exe")
 pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
-# --- NEW FIX: Set the TESSDATA_PREFIX environment variable ---
-# This explicitly tells Tesseract where to find its language data ('tessdata' folder).
-# This is crucial for the bundled .exe to work correctly.
-tessdata_dir_path = os.path.join(application_path, "tesseract")
-os.environ['TESSDATA_PREFIX'] = tessdata_dir_path
+# --- NEW FIX: Define the path to the 'tessdata' directory ---
+# This path will be passed directly to Tesseract to avoid environment variable issues.
+tessdata_dir_path = os.path.join(application_path, "tesseract", "tessdata")
 # --- END OF CONFIGURATION ---
 
 
@@ -43,7 +41,7 @@ try:
 
     # Tell pyautogui to search for the image using its full path.
     isim_label_location = pyautogui.locateCenterOnScreen(
-        isim_label_path, confidence=0.3
+        isim_label_path, confidence=0.4
     )
 
     if isim_label_location:
@@ -105,8 +103,10 @@ try:
     text_screenshot = pyautogui.screenshot(region=dialog_region)
 
     print("Sending screenshot to Tesseract for OCR...")
-    # Configure Tesseract to assume a single block of text, increasing accuracy.
-    custom_config = r"--oem 3 --psm 6"
+    # --- NEW FIX: Pass the tessdata path directly in the config ---
+    # This is more reliable than using an environment variable.
+    custom_config = f'--oem 3 --psm 6 --tessdata-dir "{tessdata_dir_path}"'
+    
     # Perform OCR on the screenshot using Turkish language data.
     text = pytesseract.image_to_string(
         text_screenshot, lang="tur", config=custom_config
@@ -121,7 +121,7 @@ try:
     # --- Step 4: Close the Dialog Box ---
     # Press Enter to click the default 'OK' button in the dialog.
     pyautogui.press("enter")
-    print("\n🎉 Automation completed successfully! 🎉")
+    print("\n🎉 Automation completed successfully! �")
     sys.exit(0)  # Exit with a success code.
 
 except Exception as e:
