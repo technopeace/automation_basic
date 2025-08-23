@@ -43,7 +43,7 @@ try:
 
     # Tell pyautogui to search for the image using its full path.
     isim_label_location = pyautogui.locateCenterOnScreen(
-        isim_label_path, confidence=0.4
+        isim_label_path, confidence=0.3
     )
 
     if isim_label_location:
