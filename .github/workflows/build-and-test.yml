@@ -103,7 +103,7 @@ jobs:
           PYTHONUTF8: "1" # Force Python to use UTF-8 mode to prevent character errors
         run: |
           echo "Starting target application..."
-          Start-Process python -ArgumentList "app.py" -WindowStyle Minimized
+          Start-Process python -ArgumentList "app.py" -WindowStyle Normal # Changed from Minimized to Normal
           
           echo "Waiting 10 seconds for the application to fully load..."
           Start-Sleep -Seconds 10
