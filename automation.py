@@ -5,45 +5,45 @@ from PIL import Image
 import time
 import pyperclip
 
-# <<< YENİ SATIRI BURAYA EKLEYİN >>>
+# <<< YENi SATIRI BURAYA EKLEYiN >>>
 # macOS'te Homebrew ile kurulan Tesseract'in yolunu belirtiyoruz
 pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/bin/tesseract'
 # --- Kurulum ve Bilgilendirme ---
-# macOS'te Homebrew ile Tesseract kurduysanız bu satırı kullanmanız gerekebilir:
+# macOS'te Homebrew ile Tesseract kurduysaniz bu satiri kullanmaniz gerekebilir:
 # pytesseract.pytesseract.tesseract_cmd = r'/opt_homebrew/bin/tesseract'
 
-print("UYARI: Bu scriptin çalışması için 'isim_label.png' dosyasını oluşturmanız gerekir.")
+print("UYARI: Bu scriptin calismasi icin 'isim_label.png' dosyasini olusturmaniz gerekir.")
 print("-" * 30)
-print("5 saniye içinde otomasyon başlayacak. Lütfen 'İnşaat Asistanı' uygulamasını açın ve öne getirin.")
+print("5 saniye icinde otomasyon baslayacak. Lutfen 'insaat Asistani' uygulamasini acin ve one getirin.")
 time.sleep(5)
 
 try:
 
 
-    # Türkçe karakterler için kopyala-yapıştır yöntemi
+    # Turkce karakterler icin kopyala-yapistir yontemi
     pyautogui.press('tab')
-    pyperclip.copy("Barış Kahraman")
+    pyperclip.copy("Baris Kahraman")
     pyautogui.hotkey('command', 'v')
     
-    print("İsim yazıldı: Barış Kahraman")
+    print("isim yazildi: Baris Kahraman")
     
     pyautogui.press('tab')
     time.sleep(0.5)
     
     pyperclip.copy("35")
     pyautogui.hotkey('command', 'v')
-    print("Yaş yazıldı: 35")
+    print("Yas yazildi: 35")
     time.sleep(0.5)
 
-    # --- Adım 3: Kaydetme İşlemini Aktive Etme ---
+    # --- Adim 3: Kaydetme islemini Aktive Etme ---
     pyautogui.press('tab')
     time.sleep(0.5)
     pyautogui.press('space')
-    print("Kaydetme işlemi aktive edildi!")
+    print("Kaydetme islemi aktive edildi!")
     time.sleep(1.5)
 
-    # --- Adım 4: Ekranın Merkezindeki Diyalog Kutusunu Oku ---
-    print("Diyalog kutusunun ekran merkezinde olduğu varsayılıyor...")
+    # --- Adim 4: Ekranin Merkezindeki Diyalog Kutusunu Oku ---
+    print("Diyalog kutusunun ekran merkezinde oldugu varsayiliyor...")
     
     screenWidth, screenHeight = pyautogui.size()
     
@@ -57,9 +57,9 @@ try:
     text_screenshot = pyautogui.screenshot(region=dialog_region)
     screenshot_path = "dialog_screenshot.png"
     text_screenshot.save(screenshot_path)
-    print(f"Ekranın merkezindeki '{screenshot_path}' dosyası kaydedildi.")
+    print(f"Ekranin merkezindeki '{screenshot_path}' dosyasi kaydedildi.")
     
-    print("Görüntü işlenmeden, ham haliyle Tesseract'e gönderiliyor...")
+    print("Goruntu islenmeden, ham haliyle Tesseract'e gonderiliyor...")
     
     custom_config = r'--oem 3 --psm 6'
     text = pytesseract.image_to_string(text_screenshot, lang="tur", config=custom_config)
@@ -67,16 +67,16 @@ try:
     cleaned_text = " ".join(text.split()).strip()
 
     print("-" * 30)
-    print(f"Diyalogdan Okunan Yazı: '{cleaned_text}'")
+    print(f"Diyalogdan Okunan Yazi: '{cleaned_text}'")
     print("-" * 30)
 
-    # --- Adım 5: Diyalog Kutusunu Kapatma ---
-    print("Diyalog kutusu 'Enter' tuşuna basılarak kapatılıyor...")
+    # --- Adim 5: Diyalog Kutusunu Kapatma ---
+    print("Diyalog kutusu 'Enter' tusuna basilarak kapatiliyor...")
     time.sleep(1)
-    pyautogui.press('enter') # 'OK' butonu için Enter tuşuna bas
+    pyautogui.press('enter') # 'OK' butonu icin Enter tusuna bas
     
-    print("\n🎉 Otomasyon başarıyla tamamlandı! 🎉")
+    print("\n🎉 Otomasyon basariyla tamamlandi! 🎉")
 
 
 except Exception as e:
-    print(f"Beklenmedik bir hata oluştu: {e}")
+    print(f"Beklenmedik bir hata olustu: {e}")
