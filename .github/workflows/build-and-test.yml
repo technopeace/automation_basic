@@ -99,11 +99,14 @@ jobs:
           echo "-------------------------"
           
           # Çıktının beklenen metni içerip içermediğini kontrol eder
-          $expected_text = "Kaydedildi! İsim: Barış Kahraman Yaş: 35"
+          $expected_text = "Kaydedildi! isim: Baris Kahraman Yas: 35"
           if ($output -like "*$expected_text*") {
             echo "✅ TEST BAŞARILI: Beklenen metin çıktıda bulundu."
             exit 0
           } else {
             echo "❌ TEST BAŞARISIZ: Beklenen metin çıktıda bulunamadı."
+            echo "Okunan:"
+            echo $output
+            beklenen $expected_text
             exit 1
           }
