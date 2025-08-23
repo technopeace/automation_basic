@@ -107,6 +107,7 @@ jobs:
             echo "❌ TEST BAŞARISIZ: Beklenen metin çıktıda bulunamadı."
             echo "Okunan:"
             echo $output
-            beklenen $expected_text
+            echo "Beklenen:"
+            echo $expected_text
             exit 1
           }
