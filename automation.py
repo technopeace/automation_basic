@@ -39,7 +39,7 @@ try:
     sw, sh = pyautogui.size()
     name_region = (0, 0, sw//2, sh//2)
 
-    name_label_location = safe_locate(name_label_path, confidence=0.9, region=name_region)
+    name_label_location = safe_locate(name_label_path, confidence=0.3, region=name_region)
 
     if name_label_location:
         pyautogui.click(name_label_location)
