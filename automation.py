@@ -32,7 +32,7 @@ try:
     name_label_path = os.path.join(application_path, "isim_label.png")
 
     name_label_location = pyautogui.locateCenterOnScreen(
-        name_label_path, confidence=0.9
+        name_label_path, confidence=0.3
     )
 
     if name_label_location:
