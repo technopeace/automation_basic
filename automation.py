@@ -22,30 +22,18 @@ tessdata_dir_path = os.path.join(application_path, "tesseract", "tessdata")
 tur_path = os.path.join(tessdata_dir_path, "tur.traineddata")
 if os.path.exists(tur_path):
     ocr_lang = "tur"
-    print("✅ Turkish language data found, using 'tur'.")
 else:
     ocr_lang = "eng"
-    print("⚠️ 'tur.traineddata' not found, falling back to English (eng).")
+    print("⚠️ tur.traineddata not found, using English.")
 
 print("Automation will start in 5 seconds...")
 time.sleep(5)
 
-def locate_with_timeout(image_path, timeout=10, confidence=0.4, region=None):
-    """Locate an image on the screen with a timeout (default 10s)."""
-    start = time.time()
-    location = None
-    while time.time() - start < timeout:
-        location = pyautogui.locateCenterOnScreen(image_path, confidence=confidence, region=region)
-        if location:
-            return location
-    return None
-
 try:
     # --- Step 1: Find and Fill the Input Fields ---
     print("Searching for the name label...")
-
     isim_label_path = os.path.join(application_path, "isim_label.png")
-    isim_label_location = locate_with_timeout(isim_label_path, timeout=10)
+    isim_label_location = pyautogui.locateCenterOnScreen(isim_label_path, confidence=0.4)
 
     if isim_label_location:
         pyautogui.click(isim_label_location)
@@ -60,28 +48,27 @@ try:
         pyautogui.hotkey("ctrl" if sys.platform == "win32" else "command", "v")
         print("Name entered: Baris Kahraman")
     else:
-        print(f"❌ Could not find '{isim_label_path}' on the screen (timeout).")
+        print(f"❌ Could not find '{isim_label_path}' on the screen.")
         sys.exit(1)
 
     time.sleep(0.5)
 
-    # --- Step 2: Age ---
+    # Age
     pyautogui.press("tab")
     time.sleep(0.5)
-
     pyperclip.copy("35")
     pyautogui.hotkey("ctrl" if sys.platform == "win32" else "command", "v")
     print("Age entered: 35")
     time.sleep(0.5)
 
-    # --- Step 3: Save ---
+    # Save
     pyautogui.press("tab")
     time.sleep(0.5)
     pyautogui.press("space")
     print("Save action activated!")
     time.sleep(1.5)
 
-    # --- Step 4: OCR Dialog ---
+    # OCR
     print("Assuming the dialog box appears in the center of the screen...")
     screenWidth, screenHeight = pyautogui.size()
     dialog_width, dialog_height = 400, 300
@@ -92,8 +79,8 @@ try:
     text_screenshot = pyautogui.screenshot(region=dialog_region)
 
     print("Sending screenshot to Tesseract for OCR...")
+    # 🔑 FIXED: no quotes around tessdata_dir_path
     custom_config = f'--oem 3 --psm 6 --tessdata-dir {tessdata_dir_path}'
-
     text = pytesseract.image_to_string(text_screenshot, lang=ocr_lang, config=custom_config)
     cleaned_text = " ".join(text.split()).strip()
 
