@@ -6,17 +6,19 @@ import time
 import pyperclip
 import os
 import sys
-import traceback  # <-- Import the traceback module to get detailed errors
+import traceback  # Import the traceback module for detailed error logging
 
 # --- DYNAMIC TESSERACT PATH CONFIGURATION ---
-# Bu blok, script'in .exe veya .py olarak çalışmasına bakmaksızın
-# kendi bulunduğu klasörün yolunu bulmasını sağlar.
+# This block ensures the script finds the Tesseract executable,
+# regardless of whether it's running as a bundled .exe or a standard .py file.
 if getattr(sys, "frozen", False):
+    # If running as a bundled executable, the path is the directory of the executable itself.
     application_path = os.path.dirname(sys.executable)
 else:
+    # If running as a standard .py script, the path is the directory of the script file.
     application_path = os.path.dirname(os.path.abspath(__file__))
 
-# Tesseract'in tam yolunu, ana programın yanındaki 'tesseract' klasörüne göre oluşturur.
+# Construct the full path to the Tesseract executable, assuming it's in a 'tesseract' subfolder.
 tesseract_path = os.path.join(application_path, "tesseract", "tesseract.exe")
 pytesseract.pytesseract.tesseract_cmd = tesseract_path
 # --- END OF CONFIGURATION ---
@@ -29,81 +31,81 @@ try:
     # --- Step 1: Find and Fill the Input Fields ---
     print("Searching for the name label...")
 
-    # <<< DEĞİŞİKLİK BURADA: Resim dosyasının tam yolunu oluşturuyoruz >>>
-    # Bu, script'in nereden çalıştırıldığından bağımsız olarak resmin bulunmasını garantiler.
+    # Construct the full path to the image file to ensure it's found.
+    # This guarantees the image is found, regardless of the script's working directory.
     isim_label_path = os.path.join(application_path, "isim_label.png")
 
-    # pyautogui'ye, resmi bu tam yolu kullanarak aramasını söylüyoruz.
+    # Tell pyautogui to search for the image using its full path.
     isim_label_location = pyautogui.locateCenterOnScreen(
         isim_label_path, confidence=0.4
     )
 
     if isim_label_location:
-        # Pencereyi aktif etmek için önce etiketin kendisine tıkla.
+        # First, click the label itself to ensure the target application window is active.
         pyautogui.click(isim_label_location)
         print("Clicked the 'Name:' label to activate the window.")
-        time.sleep(0.3)  # Pencerenin öne gelmesi için kısa bir bekleme.
+        time.sleep(0.3)  # A brief pause for the window to come into focus.
 
-        # Şimdi metin kutusuna tıkla.
+        # Now, click on the text box, which is slightly below the label.
         pyautogui.click(isim_label_location.x, isim_label_location.y + 35)
         print("Clicked on the name input field.")
         time.sleep(0.5)
 
-        # Türkçe karakterlerle güvenilir şekilde çalışmak için kopyala-yapıştır yöntemi.
+        # Use the copy-paste method for reliability with special characters.
         pyperclip.copy("Barış Kahraman")
-        # İşletim sistemine göre doğru yapıştırma kısayolunu otomatik seçer.
+        # Automatically select the correct paste shortcut for the OS.
         pyautogui.hotkey("ctrl" if sys.platform == "win32" else "command", "v")
-        print("Name entered: Barış Kahraman")
+        print("Name entered: Baris Kahraman") # Log message uses ASCII-safe characters
     else:
-        # Eğer etiket bulunamazsa, script devam edemez.
+        # If the label is not found, the script cannot proceed.
         print(f"ERROR: Could not find '{isim_label_path}' on the screen.")
-        sys.exit(1)  # Hata koduyla çık.
+        sys.exit(1)  # Exit with an error code.
 
     time.sleep(0.5)
 
-    # Bir sonraki alana (Yaş) odaklan.
+    # Move focus to the next input field (Age).
     pyautogui.press("tab")
     time.sleep(0.5)
 
-    # Yaşı aynı güvenilir kopyala-yapıştır yöntemiyle gir.
+    # Enter the age using the same reliable copy-paste method.
     pyperclip.copy("35")
     pyautogui.hotkey("ctrl" if sys.platform == "win32" else "command", "v")
     print("Age entered: 35")
     time.sleep(0.5)
 
     # --- Step 2: Activate the Save Button ---
-    # Yaş alanından Kaydet butonuna odaklan.
+    # Move focus from the Age field to the Save button.
     pyautogui.press("tab")
     time.sleep(0.5)
-    # Odaklanılan butonu boşluk tuşuyla aktive et (tıklamaktan daha güvenilir).
+    # Activate the focused button using the space bar (more reliable than clicking).
     pyautogui.press("space")
     print("Save action activated!")
-    time.sleep(1.5)  # Onay diyalogunun belirmesi için bekle.
+    time.sleep(1.5)  # Wait for the confirmation dialog to appear.
 
     # --- Step 3: Read the Result from the Dialog Box ---
     print("Assuming the dialog box appears in the center of the screen...")
-    # Ekran boyutlarını alıp merkezi hesapla.
+    # Get screen dimensions to calculate the center.
     screenWidth, screenHeight = pyautogui.size()
 
-    # Ekranın merkezinde diyalogun beklendiği bir bölge tanımla.
+    # Define a region in the center of the screen where the dialog is expected.
     dialog_width = 400
     dialog_height = 300
     dialog_x = int((screenWidth - dialog_width) / 2)
-    # Diyalogu daha iyi yakalamak için Y koordinatını biraz yukarı kaydırıyoruz.
+    # We offset the Y-coordinate slightly upwards to better capture the dialog.
     dialog_y = int((screenHeight - dialog_height) / 2) - 50
     dialog_region = (dialog_x, dialog_y, dialog_width, dialog_height)
 
-    # Sadece o bölgenin ekran görüntüsünü al.
+    # Take a screenshot of only that region.
     text_screenshot = pyautogui.screenshot(region=dialog_region)
 
     print("Sending screenshot to Tesseract for OCR...")
-    # Tesseract'i tek bir metin bloğu varsayacak şekilde yapılandırarak doğruluğu artır.
+    # Configure Tesseract to assume a single block of text, increasing accuracy.
     custom_config = r"--oem 3 --psm 6"
-    # Ekran görüntüsünde Türkçe dil verisini kullanarak OCR işlemi yap.
+    # Perform OCR on the screenshot using Turkish language data.
     text = pytesseract.image_to_string(
         text_screenshot, lang="tur", config=custom_config
     )
-    # OCR sonucunu ekstra boşluk ve satır atlamalarından temizle.
+    # Clean the OCR result from extra spaces and line breaks.
     cleaned_text = " ".join(text.split()).strip()
 
     print("-" * 30)
@@ -111,15 +113,13 @@ try:
     print("-" * 30)
 
     # --- Step 4: Close the Dialog Box ---
-    # Diyalogdaki varsayılan 'OK' butonuna tıklamak için Enter'a bas.
+    # Press Enter to click the default 'OK' button in the dialog.
     pyautogui.press("enter")
-    print("\n🎉 Automation completed successfully! 🎉")
-    sys.exit(0)  # Başarı koduyla çık.
+    print("\n🎉 Automation completed successfully! �")
+    sys.exit(0)  # Exit with a success code.
 
 except Exception as e:
-    # --- NEW: DETAILED ERROR REPORTING ---
-    # This will print the full technical error details (traceback)
-    # to help us understand the root cause of the crash.
+    # Prints the full technical error details for debugging.
     print(f"An unexpected error occurred:")
     traceback.print_exc()
-    sys.exit(1)  # Hata koduyla çık.
+    sys.exit(1)  # Exit with an error code.
