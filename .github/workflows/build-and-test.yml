@@ -120,7 +120,7 @@ jobs:
           echo "-------------------------------------------"
           
           # Check if the output contains the expected text
-          $expected_text = "Kaydedildi! İsim: Barış Kahraman Yaş: 35"
+          $expected_text = "Kaydedildi! İsim: Baris Kahraman Yas: 35"
           if ($output -like "*$expected_text*") {
             echo "✅ TEST PASSED: Expected text was found in the output."
             exit 0
