@@ -57,21 +57,17 @@ try:
         print(f"ERROR: Could not find window with title '{target_title}'")
         sys.exit(1)
 
-    # --- Step 2: Fill Input Fields ---
+    # --- Step 2: Fill Input Fields (DÜZELTİLDİ) ---
     print("Searching for the 'Name' label...")
-    
-    # *** YENİDEN EKLENEN VE DÜZELTİLEN SATIR BURADA ***
     name_label_path = os.path.join(application_path, "isim_label.png")
-    
-    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
+    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.8)
 
     if name_label_location:
-        pyautogui.click(name_label_location)
-        print("Clicked the 'Name:' label to activate window.")
-        time.sleep(0.3)
+        # SADECE GİRİŞ KUTUSUNA TIKLIYORUZ, ETİKETE DEĞİL.
         pyautogui.click(name_label_location.x, name_label_location.y + 35)
         print("Clicked on name input field.")
         time.sleep(0.5)
+
         pyperclip.copy("Baris Kahraman")
         pyautogui.hotkey("ctrl", "v")
         print("Name entered: Baris Kahraman")
@@ -79,7 +75,8 @@ try:
         print(f"ERROR: Could not find '{name_label_path}'")
         pyautogui.screenshot(os.path.join(application_path, "error_screenshot_label_not_found.png"))
         sys.exit(1)
-
+    
+    # Buradan sonrası artık doğru sırada ilerleyecek
     time.sleep(0.5)
     pyautogui.press("tab")
     time.sleep(0.5)
