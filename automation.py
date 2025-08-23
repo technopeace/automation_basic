@@ -55,7 +55,7 @@ try:
     # --- Step 2: Fill Input Fields ---
     print("Searching for the 'Name' label...")
     name_label_path = os.path.join(application_path, "isim_label.png")
-    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.7)
+    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
 
     if name_label_location:
         pyautogui.click(name_label_location)
