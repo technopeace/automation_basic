@@ -119,6 +119,14 @@ jobs:
             exit 1
           }
 
+      # --- YENİ EKLENEN ADIM ---
+      - name: Upload OCR Debug Screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocr-debug-screenshot
+          path: test_run/ocr-screenshot.png
+
       - name: Upload Debug Screenshot on Failure
         if: failure()
         uses: actions/upload-artifact@v4
