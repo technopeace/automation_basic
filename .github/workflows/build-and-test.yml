@@ -1,39 +1,45 @@
-# Bu iş akışının adı
+# Workflow Name
 name: Build, Test, and Release Automation
 
-# Bu iş akışını ne zaman çalıştıracağını belirler
+# Controls when the workflow will run
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  # --- AŞAMA 1: DAĞITIM PAKETİNİ OLUŞTURMA ---
+  # --- JOB 1: CREATE THE DEPLOYMENT PACKAGE ---
   build:
     runs-on: windows-latest
     outputs:
       version: ${{ steps.version.outputs.tag }}
 
     steps:
+      # Step 1: Check out the repository files
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Download and extract the portable version of Tesseract
       - name: Download and Extract Tesseract Portable
         run: |
           curl -L -o tesseract.zip "https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.3.20231005.exe"
           7z x tesseract.zip -oTesseractOCR
 
+      # Step 3: Set up Python 3.11
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # Step 4: Install required Python libraries
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      # Step 5: Run PyInstaller to build the EXE
       - name: Run PyInstaller to build the EXE
         run: pyinstaller --name "Automation" --onefile --windowed --add-data "isim_label.png;." automation.py
 
+      # Step 6: Prepare the final folder structure for release
       - name: Prepare Release Folder Structure
         run: |
           mkdir release_package
@@ -42,52 +48,60 @@ jobs:
           Copy-Item -Path "dist/Automation.exe" -Destination "release_package/"
           Copy-Item -Path "isim_label.png" -Destination "release_package/"
       
+      # Step 7: Generate a version number (e.g., v1.0.15)
       - name: Get Version Number
         id: version
         run: echo "tag=v1.0.${{ github.run_number }}" >> $env:GITHUB_OUTPUT
 
+      # Step 8: Zip the release folder with the version number
       - name: Zip the Release Folder
         run: Compress-Archive -Path release_package/* -DestinationPath "InsaatAsistani-${{ steps.version.outputs.tag }}.zip"
 
+      # Step 9: Upload the final .zip file as a downloadable artifact
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-release-package
           path: "InsaatAsistani-${{ steps.version.outputs.tag }}.zip"
 
-  # --- AŞAMA 2: OLUŞTURULAN PAKETİ TEST ETME ---
+  # --- JOB 2: TEST THE CREATED PACKAGE ---
   test:
-    needs: build
+    needs: build # This job starts only after the 'build' job is complete
     runs-on: windows-latest
 
     steps:
+      # Step 1: Check out repository files for testing (especially app.py)
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Set up Python for the test environment
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # Step 3: Download the .zip file created in the 'build' job
       - name: Download Release Artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-release-package
 
+      # Step 4: Unzip the downloaded package
       - name: Unzip Release Package
         run: Expand-Archive -Path "*.zip" -DestinationPath test_run
 
+      # Step 5: Run the integration test
       - name: Run Integration Test
         env:
-          PYTHONUTF8: "1"
+          PYTHONUTF8: "1" # Force Python to use UTF-8 to prevent character errors
         run: |
-          echo "Hedef uygulama başlatılıyor..."
+          echo "Starting target application..."
           Start-Process python -ArgumentList "app.py" -WindowStyle Minimized
           
-          echo "Uygulamanın tam olarak açılması için 10 saniye bekleniyor..."
+          echo "Waiting 10 seconds for the application to fully load..."
           Start-Sleep -Seconds 10
           
-          echo "Hata ayıklama için ekran görüntüsü alınıyor..."
+          echo "Taking a screenshot for debugging..."
           Add-Type -AssemblyName System.Windows.Forms
           $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
           $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
@@ -95,31 +109,32 @@ jobs:
           $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
           $bitmap.Save("debug-screenshot.png", [System.Drawing.Imaging.ImageFormat]::Png)
           
-          echo "Otomasyon.exe çalıştırılıyor..."
+          echo "Running Automation.exe..."
           $process = Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
           
           $stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
           $stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
           $output = $stdout + $stderr
           
-          echo "--- OTOMASYON ÇIKTISI (stdout + stderr) ---"
+          echo "--- AUTOMATION OUTPUT (stdout + stderr) ---"
           echo $output
           echo "-------------------------------------------"
           
+          # Check if the output contains the expected text
           $expected_text = "Kaydedildi! İsim: Barış Kahraman Yaş: 35"
           if ($output -like "*$expected_text*") {
-            echo "✅ TEST BAŞARILI: Beklenen metin çıktıda bulundu."
+            echo "✅ TEST PASSED: Expected text was found in the output."
             exit 0
           } else {
-            echo "❌ TEST BAŞARISIZ: Beklenen metin çıktıda bulunamadı."
-            echo "Okunan:"
+            echo "❌ TEST FAILED: Expected text was not found in the output."
+            echo "Read:"
             echo $output
-            echo "Beklenen:"
+            echo "Expected:"
             echo $expected_text
             exit 1
           }
       
-      # Test başarısız olursa, hata ayıklama ekran görüntüsünü indirilebilir hale getirir
+      # If the test fails, upload the debug screenshot as an artifact
       - name: Upload Debug Screenshot on Failure
         if: failure()
         uses: actions/upload-artifact@v4
