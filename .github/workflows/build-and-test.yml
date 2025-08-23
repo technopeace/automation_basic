@@ -103,10 +103,13 @@ jobs:
           PYTHONUTF8: "1" # Force Python to use UTF-8 mode to prevent character errors
         run: |
           echo "Starting target application..."
-          Start-Process python -ArgumentList "app.py" -WindowStyle Normal # Changed from Minimized to Normal
+          $appProcess = Start-Process python -ArgumentList "app.py" -WindowStyle Normal -PassThru
           
-          echo "Waiting 10 seconds for the application to fully load..."
-          Start-Sleep -Seconds 10
+          echo "Waiting for application window and bringing it to front..."
+          Start-Sleep -Seconds 3
+          Add-Type -AssemblyName Microsoft.VisualBasic
+          [Microsoft.VisualBasic.Interaction]::AppActivate($appProcess.Id)
+          Start-Sleep -Seconds 7 # Wait a bit longer after activation for window to be fully ready
           
           echo "Taking a screenshot for debugging..."
           Add-Type -AssemblyName System.Windows.Forms
