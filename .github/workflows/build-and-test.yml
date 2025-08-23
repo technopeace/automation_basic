@@ -1,0 +1,119 @@
+# Bu iş akışının adı
+name: Build, Test, and Release Automation
+
+# Bu iş akışını ne zaman çalıştıracağını belirler
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  # --- AŞAMA 1: DAĞITIM PAKETİNİ OLUŞTURMA ---
+  build:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.tag }}
+
+    steps:
+      # Proje dosyalarını sanal makineye indirir
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Tesseract'in taşınabilir (portable) versiyonunu indirir ve zip'ten çıkarır
+      - name: Download and Extract Tesseract Portable
+        run: |
+          curl -L -o tesseract.zip "https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.3.20231005.exe"
+          7z x tesseract.zip -oTesseractOCR
+
+      # Python 3.11'i kurar
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Gerekli Python kütüphanelerini kurar
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # PyInstaller ile .exe dosyasını oluşturur
+      - name: Run PyInstaller to build the EXE
+        run: pyinstaller --name "Automation" --onefile --windowed --add-data "isim_label.png;." automation.py
+
+      # Dağıtım için son klasör yapısını hazırlar
+      - name: Prepare Release Folder Structure
+        run: |
+          mkdir release_package
+          Copy-Item -Path "TesseractOCR/*" -Destination "release_package/tesseract" -Recurse
+          Copy-Item -Path "dist/Automation.exe" -Destination "release_package/"
+          Copy-Item -Path "isim_label.png" -Destination "release_package/"
+      
+      # Versiyon numarasını oluşturur (Örn: v1.0.15)
+      - name: Get Version Number
+        id: version
+        run: echo "tag=v1.0.${{ github.run_number }}" >> $env:GITHUB_OUTPUT
+
+      # Dağıtım klasörünü versiyon numarasıyla birlikte zip'ler
+      - name: Zip the Release Folder
+        run: Compress-Archive -Path release_package/* -DestinationPath "InsaatAsistani-${{ steps.version.outputs.tag }}.zip"
+
+      # Oluşturulan .zip dosyasını indirilebilir bir "artifact" olarak kaydeder
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-package
+          path: "InsaatAsistani-${{ steps.version.outputs.tag }}.zip"
+
+  # --- AŞAMA 2: OLUŞTURULAN PAKETİ TEST ETME ---
+  test:
+    needs: build # Bu aşama, 'build' bittikten sonra başlar
+    runs-on: windows-latest
+
+    steps:
+      # Test için proje dosyalarını (özellikle app.py) tekrar indirir
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Test ortamı için Python'u kurar
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 'build' aşamasında oluşturulan .zip dosyasını indirir
+      - name: Download Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release-package
+
+      # İndirilen paketi zip'ten çıkarır
+      - name: Unzip Release Package
+        run: Expand-Archive -Path "*.zip" -DestinationPath test_run
+
+      # Entegrasyon testini çalıştırır
+      - name: Run Integration Test
+        run: |
+          # Hedef Tkinter uygulamasını (app.py) arka planda başlatır
+          echo "Hedef uygulama başlatılıyor..."
+          Start-Process python -ArgumentList "app.py" -WindowStyle Minimized
+          
+          # Uygulamanın açılması için 5 saniye bekler
+          Start-Sleep -Seconds 5
+          
+          # Otomasyon .exe'sini çalıştırır ve çıktısını yakalar
+          echo "Otomasyon.exe çalıştırılıyor..."
+          $output = & "./test_run/Automation.exe"
+          
+          # Çıktıyı ekrana yazdırır
+          echo "--- OTOMASYON ÇIKTISI ---"
+          echo $output
+          echo "-------------------------"
+          
+          # Çıktının beklenen metni içerip içermediğini kontrol eder
+          $expected_text = "Kaydedildi! İsim: Barış Kahraman Yaş: 35"
+          if ($output -like "*$expected_text*") {
+            echo "✅ TEST BAŞARILI: Beklenen metin çıktıda bulundu."
+            exit 0
+          } else {
+            echo "❌ TEST BAŞARISIZ: Beklenen metin çıktıda bulunamadı."
+            exit 1
+          }
