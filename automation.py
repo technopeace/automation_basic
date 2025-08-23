@@ -35,7 +35,7 @@ try:
 
     # pyautogui'ye, resmi bu tam yolu kullanarak aramasını söylüyoruz.
     isim_label_location = pyautogui.locateCenterOnScreen(
-        isim_label_path, confidence=0.9
+        isim_label_path, confidence=0.4
     )
 
     if isim_label_location:
