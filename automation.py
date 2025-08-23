@@ -6,13 +6,12 @@ import pyperclip
 import os
 import sys
 import traceback
+import pygetwindow as gw  # <-- YENİ: Kütüphaneyi import et
 
 # --- DYNAMIC TESSERACT PATH CONFIGURATION ---
 if getattr(sys, "frozen", False):
-    # .exe olarak çalıştırıldığında
     application_path = os.path.dirname(sys.executable)
 else:
-    # .py dosyası olarak çalıştırıldığında
     application_path = os.path.dirname(os.path.abspath(__file__))
 
 tesseract_path = os.path.join(application_path, "tesseract", "tesseract.exe")
@@ -26,10 +25,28 @@ print("Automation will start in 5 seconds...")
 time.sleep(5)
 
 try:
-    # --- Step 1: Fill Input Fields ---
+    # --- YENİ ADIM 1: Hedef Pencereyi Bul ve Aktif Hale Getir ---
+    target_title = "İnşaat Asistanı - Demo"
+    print(f"Searching for window with title: '{target_title}'")
+    app_window = gw.getWindowsWithTitle(target_title)
+
+    if app_window:
+        # Pencereyi öne getir, büyüt ve odaklan
+        window = app_window[0]
+        window.activate()
+        if not window.isActive:
+            window.maximize() # Güvenlik için pencereyi büyüt
+            window.activate()
+        print("Target window activated and brought to front.")
+        time.sleep(1) # Pencerenin öne gelmesi için kısa bir bekleme
+    else:
+        print(f"ERROR: Could not find window with title '{target_title}'")
+        sys.exit(1)
+
+    # --- Step 2: Fill Input Fields (Eski Adım 1) ---
     print("Searching for the 'Name' label...")
     name_label_path = os.path.join(application_path, "isim_label.png")
-    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
+    name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.7) # Confidence artırıldı
 
     if name_label_location:
         pyautogui.click(name_label_location)
@@ -56,22 +73,20 @@ try:
     print("Age entered: 35")
     time.sleep(0.5)
 
-    # --- Step 2: Activate Save Button ---
+    # --- Step 3: Activate Save Button ---
     pyautogui.press("tab")
     time.sleep(0.5)
     pyautogui.press("space")
     print("Save button activated!")
     time.sleep(1.5)
 
-    # --- Step 3: Capture Dialog Box and OCR ---
-    # Önce tüm ekranın görüntüsünü al
+    # --- Step 4: Capture Dialog Box and OCR ---
     print("Capturing full screen...")
     full_screenshot = pyautogui.screenshot()
     full_screenshot_path = os.path.join(application_path, "full-screenshot.png")
     full_screenshot.save(full_screenshot_path)
     print(f"Full screen debug screenshot saved: {full_screenshot_path}")
 
-    # Sonra sadece dialog kutusunun görüntüsünü al
     print("Capturing dialog box...")
     screenWidth, screenHeight = pyautogui.size()
     dialog_width = 400
@@ -96,7 +111,7 @@ try:
     pyautogui.press("enter")
     print("Dialog closed with Enter.")
 
-    # --- Step 4: Final Success Message ---
+    # --- Step 5: Final Success Message ---
     print("\nAutomation completed successfully!")
     sys.exit(0)
 
