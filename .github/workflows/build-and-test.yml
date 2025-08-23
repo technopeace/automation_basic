@@ -105,8 +105,8 @@ jobs:
           echo "Starting target application..."
           Start-Process python -ArgumentList "app.py" -WindowStyle Normal
           
-          echo "Waiting 20 seconds for the virtual desktop and application to stabilize..."
-          Start-Sleep -Seconds 20 # Increased wait time for maximum stability
+          echo "Waiting 5 seconds for the virtual desktop and application to stabilize..."
+          Start-Sleep -Seconds 5 # Increased wait time for maximum stability
           
           echo "Taking a screenshot for debugging..."
           Add-Type -AssemblyName System.Windows.Forms

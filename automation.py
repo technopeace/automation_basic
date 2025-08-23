@@ -9,7 +9,7 @@ import sys
 import traceback  # Import the traceback module for detailed error logging
 
 # --- DYNAMIC TESSERACT PATH CONFIGURATION ---
-# This block ensures the script finds the Tesseract executable,
+# This block ensures the script finds the Tesseract executable and its data files,
 # regardless of whether it's running as a bundled .exe or a standard .py file.
 if getattr(sys, "frozen", False):
     # If running as a bundled executable, the path is the directory of the executable itself.
@@ -21,6 +21,12 @@ else:
 # Construct the full path to the Tesseract executable, assuming it's in a 'tesseract' subfolder.
 tesseract_path = os.path.join(application_path, "tesseract", "tesseract.exe")
 pytesseract.pytesseract.tesseract_cmd = tesseract_path
+
+# --- NEW FIX: Set the TESSDATA_PREFIX environment variable ---
+# This explicitly tells Tesseract where to find its language data ('tessdata' folder).
+# This is crucial for the bundled .exe to work correctly.
+tessdata_dir_path = os.path.join(application_path, "tesseract")
+os.environ['TESSDATA_PREFIX'] = tessdata_dir_path
 # --- END OF CONFIGURATION ---
 
 
@@ -115,7 +121,7 @@ try:
     # --- Step 4: Close the Dialog Box ---
     # Press Enter to click the default 'OK' button in the dialog.
     pyautogui.press("enter")
-    print("\n🎉 Automation completed successfully! �")
+    print("\n🎉 Automation completed successfully! 🎉")
     sys.exit(0)  # Exit with a success code.
 
 except Exception as e:
