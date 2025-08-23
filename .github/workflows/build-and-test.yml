@@ -89,11 +89,18 @@ jobs:
       # Step 4: Unzip the downloaded package
       - name: Unzip Release Package
         run: Expand-Archive -Path "*.zip" -DestinationPath test_run
+      
+      # Step 5: Install and start a virtual display (required for GUI tests)
+      - name: Install and start virtual display
+        run: |
+          choco install tightvnc -y
+          Start-Process "C:\Program Files\TightVNC\tvnserver.exe" -ArgumentList "-run"
+          Start-Sleep -Seconds 5 # Wait for the server to start
 
-      # Step 5: Run the integration test
+      # Step 6: Run the integration test
       - name: Run Integration Test
         env:
-          PYTHONUTF8: "1" # Force Python to use UTF-8 to prevent character errors
+          PYTHONUTF8: "1" # Force Python to use UTF-8 mode to prevent character errors
         run: |
           echo "Starting target application..."
           Start-Process python -ArgumentList "app.py" -WindowStyle Minimized
