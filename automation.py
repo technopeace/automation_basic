@@ -18,14 +18,14 @@ tesseract_path = os.path.join(application_path, "tesseract", "tesseract.exe")
 if os.path.exists(tesseract_path):
     pytesseract.pytesseract.tesseract_cmd = tesseract_path
 else:
-    print(f"ERROR: Tesseract not found at: {tesseract_path}")
+    print(f"ERROR: Tesseract not found at {tesseract_path}")
     sys.exit(1)
 
 print("Automation will start in 5 seconds...")
 time.sleep(5)
 
 try:
-    # --- Step 1: Find and Fill the Input Fields ---
+    # --- Step 1: Fill Input Fields ---
     print("Searching for the 'Name' label...")
     name_label_path = os.path.join(application_path, "isim_label.png")
     name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
@@ -34,16 +34,16 @@ try:
         pyautogui.click(name_label_location)
         print("Clicked the 'Name:' label to activate window.")
         time.sleep(0.3)
+
         pyautogui.click(name_label_location.x, name_label_location.y + 35)
         print("Clicked on name input field.")
         time.sleep(0.5)
 
-        # ASCII-safe text entry
         pyperclip.copy("Baris Kahraman")
         pyautogui.hotkey("ctrl", "v")
         print("Name entered: Baris Kahraman")
     else:
-        print(f"ERROR: Could not find '{name_label_path}' on screen.")
+        print(f"ERROR: Could not find '{name_label_path}'")
         sys.exit(1)
 
     time.sleep(0.5)
@@ -62,20 +62,21 @@ try:
     print("Save button activated!")
     time.sleep(1.5)
 
-    # --- Step 3: Capture and OCR Dialog ---
+    # --- Step 3: Capture Dialog Box and OCR ---
     print("Capturing dialog box...")
     screenWidth, screenHeight = pyautogui.size()
-    dialog_width, dialog_height = 400, 300
-    dialog_x = (screenWidth - dialog_width) // 2
-    dialog_y = (screenHeight - dialog_height) // 2 - 50
+    dialog_width = 400
+    dialog_height = 300
+    dialog_x = int((screenWidth - dialog_width) / 2)
+    dialog_y = int((screenHeight - dialog_height) / 2) - 50
     dialog_region = (dialog_x, dialog_y, dialog_width, dialog_height)
 
     text_screenshot = pyautogui.screenshot(region=dialog_region)
-    debug_path = os.path.join(application_path, "ocr-screenshot.png")
-    text_screenshot.save(debug_path)
-    print(f"OCR debug screenshot saved: {debug_path}")
+    screenshot_path = os.path.join(application_path, "ocr-screenshot.png")
+    text_screenshot.save(screenshot_path)
+    print(f"OCR debug screenshot saved: {screenshot_path}")
 
-    custom_config = r"--oem 3 --psm 6"
+    custom_config = "--oem 3 --psm 6"
     text = pytesseract.image_to_string(text_screenshot, lang="eng", config=custom_config)
     cleaned_text = " ".join(text.split()).strip()
 
@@ -83,14 +84,14 @@ try:
     print(f"Text read from dialog: '{cleaned_text}'")
     print("-" * 30)
 
-    # --- Step 4: Close Dialog ---
     pyautogui.press("enter")
     print("Dialog closed with Enter.")
 
-    print("\n🎉 Automation completed successfully! 🎉")
+    # --- Step 4: Final Success Message ---
+    print("\nAutomation completed successfully!")  # Emoji removed for Windows CP1252 safety
     sys.exit(0)
 
-except Exception:
+except Exception as e:
     print("An unexpected error occurred:")
     traceback.print_exc()
     sys.exit(1)

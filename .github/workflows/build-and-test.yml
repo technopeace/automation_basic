@@ -2,7 +2,7 @@ name: Build, Test, and Release Automation
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -10,6 +10,7 @@ jobs:
     runs-on: windows-latest
     outputs:
       version: ${{ steps.version.outputs.tag }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,10 +28,10 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Run PyInstaller to build the EXE
+      - name: Run PyInstaller
         run: pyinstaller --name "Automation" --onefile --windowed --add-data "isim_label.png;." automation.py
 
-      - name: Prepare Release Folder Structure
+      - name: Prepare Release Folder
         run: |
           mkdir release_package
           mkdir release_package/tesseract
@@ -42,7 +43,7 @@ jobs:
         id: version
         run: echo "tag=v1.0.${{ github.run_number }}" >> $env:GITHUB_OUTPUT
 
-      - name: Zip the Release Folder
+      - name: Zip Release Folder
         run: Compress-Archive -Path release_package/* -DestinationPath "InsaatAsistani-${{ steps.version.outputs.tag }}.zip"
 
       - name: Upload Release Artifact
@@ -54,6 +55,7 @@ jobs:
   test:
     needs: build
     runs-on: windows-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,9 +84,9 @@ jobs:
           PYTHONUTF8: "1"
         run: |
           echo "Starting target application..."
-          Start-Process python -ArgumentList "app.py"
+          Start-Process python -ArgumentList "app.py" -WindowStyle Normal
           Start-Sleep -Seconds 5
-          
+
           echo "Taking a debug screenshot..."
           Add-Type -AssemblyName System.Windows.Forms
           $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
@@ -99,10 +101,10 @@ jobs:
           $stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
           $stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
           $output = $stdout + $stderr
-
+          
           echo "--- AUTOMATION OUTPUT ---"
           echo $output
-          echo "-------------------------------------------"
+          echo "--------------------------------"
 
           $expected_text = "Kaydedildi! Isim: Baris Kahraman Yas: 35"
           if ($output -like "*$expected_text*") {
@@ -111,16 +113,12 @@ jobs:
           } else {
             echo "❌ TEST FAILED"
             echo $output
-            echo "Expected:"
-            echo $expected_text
             exit 1
           }
 
-      - name: Upload Debug Screenshots on Failure
+      - name: Upload Debug Screenshot on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: debug-screenshots
-          path: |
-            debug-screenshot.png
-            test_run/ocr-screenshot.png
+          path: debug-screenshot.png
