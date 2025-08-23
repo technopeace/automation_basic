@@ -4,3 +4,4 @@ Pillow
 pyperclip
 pyinstaller
 numpy<2
+opencv-python
