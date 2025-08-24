@@ -52,6 +52,13 @@ jobs:
           name: windows-release-package
           path: "ConstructionAssistant-${{ steps.version.outputs.tag }}.zip"
 
+      # ✅ Yeni eklenen adım: EXE artifact ayrıca yüklensin
+      - name: Upload EXE Artifact (for WinAppDriver)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Automation-exe
+          path: dist/Automation.exe
+
   test_pyautogui:
     name: Test with PyAutoGUI
     needs: build
@@ -205,6 +212,7 @@ jobs:
           path: |
             selenium-failure-screenshot.png
             full-screenshot.png
+
   test_winappdriver:
     name: Test with WinAppDriver
     needs: build
