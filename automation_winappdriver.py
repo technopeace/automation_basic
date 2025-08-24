@@ -2,8 +2,9 @@
 import sys
 import os
 import io
+import subprocess
+import time
 from appium import webdriver
-from appium.options.common.base import AppiumOptions
 from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -26,15 +27,17 @@ driver = None
 try:
     print(f"Starting WinAppDriver test with launcher: {APP_LAUNCHER_PATH}")
 
-    # --- THE FIX: Let WinAppDriver launch the app directly ---
-    # This creates a single, fast, and direct connection.
-    app_options = AppiumOptions()
-    app_options.set_capability("platformName", "Windows")
-    app_options.set_capability("appium:automationName", "Windows")
-    app_options.set_capability("appium:app", APP_LAUNCHER_PATH)
-    app_options.set_capability("appium:createSessionTimeout", "20000") # 20 seconds timeout
+    # --- THE FIX: Manually create the capabilities dictionary ---
+    # This is a more direct and compatible method for WinAppDriver.
+    app_capabilities = {
+        "platformName": "Windows",
+        "appium:automationName": "Windows",
+        "appium:app": APP_LAUNCHER_PATH,
+        "appium:createSessionTimeout": 20000  # Timeout in milliseconds
+    }
 
-    driver = webdriver.Remote(command_executor=WINAPPDRIVER_URL, options=app_options)
+    # Use the 'desired_capabilities' argument with the dictionary
+    driver = webdriver.Remote(command_executor=WINAPPDRIVER_URL, desired_capabilities=app_capabilities)
     print("Successfully created a session with the application.")
     
     # Wait for the main window to be ready
