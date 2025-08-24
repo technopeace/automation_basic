@@ -87,54 +87,32 @@ jobs:
           Start-Process python -ArgumentList "app.py" -WindowStyle Normal
           Start-Sleep -Seconds 7
 
-          # 2. Adım: Tüm test mantığını bir PowerShell script dosyasına yaz.
-          @"
-          echo "Running Automation.exe in a minimized window..."
-          \$process = Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
-          
-          \$stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
-          \$stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
-          \$output = \$stdout + \$stderr
+          # 2. Adım: Otomasyonu DOĞRUDAN çalıştır. Arka planda script oluşturma yok.
+          echo "Running Automation.exe directly..."
+          Start-Process -FilePath "./test_run/Automation.exe" -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+
+          # Çıktı dosyalarını oku
+          $stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
+          $stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
+          $output = $stdout + $stderr
           
           echo "--- AUTOMATION OUTPUT ---"
-          echo \$output
+          echo $output
           echo "--------------------------------"
+
+          # DEBUG ADIMI: Test sonrası tüm dosya ve klasörleri listele.
+          echo "--- FILE LISTING AFTER TEST ---"
+          Get-ChildItem -Path . -Recurse
+          echo "---------------------------------"
           
-          \$expected_text = "Automation completed successfully!"
-          if (\$output -like "*\$expected_text*") {
+          # Sonucu kontrol et
+          $expected_text = "Automation completed successfully!"
+          if ($output -like "*$expected_text*") {
             echo "✅ TEST PASSED"
             exit 0
           } else {
             echo "❌ TEST FAILED"
             exit 1
-          }
-          "@ | Set-Content -Path test_logic.ps1 -Encoding utf8
-
-          # 3. Adım: Oluşturulan test script'ini KÜÇÜLTÜLMÜŞ olarak çalıştır.
-          echo "Executing test logic in the background..."
-          $process = $null
-          try {
-              # DÜZELTME: Çalışma dizinini açıkça belirterek dosya yolu sorunlarını çözüyoruz.
-              $process = Start-Process powershell -ArgumentList "-File", "test_logic.ps1" -WorkingDirectory $env:GITHUB_WORKSPACE -WindowStyle Minimized -Wait -PassThru -ErrorAction Stop
-          } catch {
-              Write-Error "Failed to execute test_logic.ps1. Error: $_"
-              exit 1
-          }
-          
-          # 4. Adım: Test script'inin çıkış kodunu kontrol et.
-          if ($null -ne $process -and $process.ExitCode -ne 0) {
-              Write-Host "❌ Test script failed with exit code: $($process.ExitCode)"
-              if (Test-Path stdout.txt) {
-                Write-Host "--- Captured output from failed test ---"
-                Get-Content stdout.txt
-                Write-Host "----------------------------------------"
-              }
-              exit 1
-          } elseif ($null -eq $process) {
-              Write-Error "❌ The test process object was not created. Test failed."
-              exit 1
-          } else {
-              echo "✅ Test script completed successfully."
           }
 
       - name: Upload Full Screen Debug Screenshot
