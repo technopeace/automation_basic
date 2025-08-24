@@ -237,48 +237,57 @@ jobs:
           Start-Process "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
           Start-Sleep -Seconds 5
 
-      - name: Run WinAppDriver Integration Test
+      - name: Launch Tkinter app and get window handle
+        id: get_hwnd
         shell: pwsh
         run: |
           $pythonPath = "python"
           $appPath = Join-Path $env:GITHUB_WORKSPACE 'app.py'
-
           echo "Launching Tkinter GUI app directly..."
-          $guiProcess = Start-Process $pythonPath -ArgumentList $appPath -PassThru
-          Start-Sleep -Seconds 5
+          $process = Start-Process $pythonPath -ArgumentList $appPath -PassThru
+          Start-Sleep -Seconds 2
 
           echo "Finding top-level window handle..."
           Add-Type @"
           using System;
           using System.Runtime.InteropServices;
           public class Win32 {
-              [DllImport("user32.dll", SetLastError=true)]
-              public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+            [DllImport("user32.dll", SetLastError=true)]
+            public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
           }
           "@
 
-          $hwnd = [Win32]::FindWindow($null, "Construction Assistant - Demo")
+          $hwnd = [IntPtr]::Zero
+          for ($i=0; $i -lt 15; $i++) {
+              $hwnd = [Win32]::FindWindow($null, "Construction Assistant - Demo")
+              if ($hwnd -ne [IntPtr]::Zero) { break }
+              Start-Sleep -Seconds 1
+          }
+
           if ($hwnd -eq [IntPtr]::Zero) {
               echo "❌ Could not find window handle."
               exit 1
           }
 
           $hwndHex = ('{0:X}' -f $hwnd.ToInt64())
-          echo "Window handle found: $hwndHex"
+          echo "Window handle: $hwndHex"
+          echo "::set-output name=hwnd::$hwndHex"
 
-          echo "Running WinAppDriver automation script..."
-          $arguments = "automation_winappdriver.py", $hwndHex
+      - name: Run WinAppDriver Integration Test
+        shell: pwsh
+        run: |
+          $hwnd = "${{ steps.get_hwnd.outputs.hwnd }}"
+          echo "Running WinAppDriver automation script with window handle: $hwnd"
+          $arguments = "automation_winappdriver.py", $hwnd
           Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
 
           $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
-          echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"
-          echo $output
-          echo "--------------------------------------"
+          echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"; echo $output; echo "--------------------------------------"
 
           $expected_text = "🎉 WINAPPDRIVER TEST PASSED"
           if ($output -like "*$expected_text*") {
-              echo "✅ WINAPPDRIVER TEST SUITE PASSED"
+            echo "✅ WINAPPDRIVER TEST SUITE PASSED"
           } else {
-              echo "❌ WINAPPDRIVER TEST SUITE FAILED"
-              exit 1
+            echo "❌ WINAPPDRIVER TEST SUITE FAILED"
+            exit 1
           }
