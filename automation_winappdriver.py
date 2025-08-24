@@ -1,8 +1,6 @@
 # automation_winappdriver.py
 import sys
 import os
-import subprocess
-import time
 import io
 from appium import webdriver
 from appium.options.common.base import AppiumOptions
@@ -16,47 +14,34 @@ if sys.stdout.encoding != 'utf-8':
 if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-# Get the absolute path to the app.py script to be tested
-APP_PATH = os.path.abspath("app.py")
-PYTHON_EXE_PATH = sys.executable
+# Get the absolute path to the launcher script from the command line
+if len(sys.argv) < 2:
+    print("❌ ERROR: The absolute path to the launcher script (.bat) was not provided.")
+    sys.exit(1)
+APP_LAUNCHER_PATH = sys.argv[1]
+
 WINAPPDRIVER_URL = 'http://127.0.0.1:4723'
 
 driver = None
-app_process = None
 try:
-    print("Starting WinAppDriver test...")
+    print(f"Starting WinAppDriver test with launcher: {APP_LAUNCHER_PATH}")
 
-    # Start app.py as a separate process
-    print(f"Launching app: {PYTHON_EXE_PATH} {APP_PATH}")
-    app_process = subprocess.Popen([PYTHON_EXE_PATH, APP_PATH])
-    time.sleep(3) # Give the app a moment to launch
-
-    # --- THE FIX: Use the modern W3C capability format with 'appium:' prefix ---
-    # First, connect to the entire desktop to find our app's window handle
-    desktop_options = AppiumOptions()
-    desktop_options.set_capability("platformName", "Windows")
-    desktop_options.set_capability("appium:automationName", "Windows")
-    desktop_options.set_capability("appium:app", "Root")
-    
-    desktop_driver = webdriver.Remote(command_executor=WINAPPDRIVER_URL, options=desktop_options)
-    
-    # Find the application window by its title
-    app_window = desktop_driver.find_element(AppiumBy.NAME, "Construction Assistant - Demo")
-    app_window_handle = app_window.get_attribute("NativeWindowHandle")
-    app_window_handle_hex = hex(int(app_window_handle))
-    
-    # --- Connect directly to the application window using its handle ---
+    # --- THE FIX: Let WinAppDriver launch the app directly ---
+    # This creates a single, fast, and direct connection.
     app_options = AppiumOptions()
     app_options.set_capability("platformName", "Windows")
     app_options.set_capability("appium:automationName", "Windows")
-    app_options.set_capability("appium:appTopLevelWindow", app_window_handle_hex)
-    
-    driver = webdriver.Remote(command_executor=WINAPPDRIVER_URL, options=app_options)
-    print("Successfully connected to the application window.")
-    
-    wait = WebDriverWait(driver, 10)
+    app_options.set_capability("appium:app", APP_LAUNCHER_PATH)
+    app_options.set_capability("appium:createSessionTimeout", "20000") # 20 seconds timeout
 
-    # Interact with elements using Accessibility Properties
+    driver = webdriver.Remote(command_executor=WINAPPDRIVER_URL, options=app_options)
+    print("Successfully created a session with the application.")
+    
+    # Wait for the main window to be ready
+    wait = WebDriverWait(driver, 20)
+    wait.until(EC.presence_of_element_located((AppiumBy.NAME, "Construction Assistant - Demo")))
+
+    # --- Interact with elements using Accessibility Properties ---
     entry_fields = wait.until(EC.presence_of_all_elements_located((AppiumBy.CLASS_NAME, "TEntry")))
     
     entry_fields[0].send_keys("Baris Kahraman")
@@ -91,8 +76,4 @@ finally:
     # Clean up resources
     if driver:
         driver.quit()
-    if desktop_driver:
-        desktop_driver.quit()
-    if app_process:
-        print("Terminating the application process.")
-        app_process.terminate()
+

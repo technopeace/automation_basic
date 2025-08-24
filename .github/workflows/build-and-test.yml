@@ -233,8 +233,14 @@ jobs:
       - name: Run WinAppDriver Integration Test
         shell: pwsh
         run: |
-          echo "Running WinAppDriver automation script..."
-          Start-Process python -ArgumentList "automation_winappdriver.py" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+          # Create a simple batch file to launch the Python GUI app
+          Set-Content -Path "launch.bat" -Value "python app.py"
+          $launcherPath = Join-Path $env:GITHUB_WORKSPACE 'launch.bat'
+
+          echo "Running WinAppDriver automation script against launcher: $launcherPath"
+          
+          $arguments = "automation_winappdriver.py", $launcherPath
+          Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
           
           $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
 
@@ -249,12 +255,3 @@ jobs:
             echo "❌ WINAPPDRIVER TEST SUITE FAILED"
             exit 1
           }
-
-      - name: Upload Failure Screenshot
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: winappdriver-failure-screenshot
-          # The Python script doesn't create a screenshot, this step is a placeholder
-          # To make it work, add screenshot logic to the Python script's except block
-          path: . # Placeholder path
