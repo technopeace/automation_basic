@@ -240,28 +240,45 @@ jobs:
       - name: Run WinAppDriver Integration Test
         shell: pwsh
         run: |
-          # THE FIX: Launch the real GUI application (app.py) via launch.bat
-          Set-Content -Path "launch.bat" -Value "python app.py"
-          $launcherPath = Join-Path $env:GITHUB_WORKSPACE 'launch.bat'
-          echo "Launching Tkinter app via launch.bat..."
-          echo "Running WinAppDriver automation script against launcher: $launcherPath"
+          $pythonPath = "python"
+          $appPath = Join-Path $env:GITHUB_WORKSPACE 'app.py'
 
-          # Run the WinAppDriver automation script, passing launcher path
-          $arguments = "automation_winappdriver.py", $launcherPath
+          echo "Launching Tkinter GUI app directly..."
+          $guiProcess = Start-Process $pythonPath -ArgumentList $appPath -PassThru
+          Start-Sleep -Seconds 5
+
+          echo "Finding top-level window handle..."
+          Add-Type @"
+          using System;
+          using System.Runtime.InteropServices;
+          public class Win32 {
+              [DllImport("user32.dll", SetLastError=true)]
+              public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+          }
+          "@
+
+          $hwnd = [Win32]::FindWindow($null, "Construction Assistant - Demo")
+          if ($hwnd -eq [IntPtr]::Zero) {
+              echo "❌ Could not find window handle."
+              exit 1
+          }
+
+          $hwndHex = ('{0:X}' -f $hwnd.ToInt64())
+          echo "Window handle found: $hwndHex"
+
+          echo "Running WinAppDriver automation script..."
+          $arguments = "automation_winappdriver.py", $hwndHex
           Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
 
-          # Capture output
           $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
           echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"
           echo $output
           echo "--------------------------------------"
 
-          # Validate test success
           $expected_text = "🎉 WINAPPDRIVER TEST PASSED"
           if ($output -like "*$expected_text*") {
-            echo "✅ WINAPPDRIVER TEST SUITE PASSED"
+              echo "✅ WINAPPDRIVER TEST SUITE PASSED"
           } else {
-            echo "❌ WINAPPDRIVER TEST SUITE FAILED"
-            exit 1
+              echo "❌ WINAPPDRIVER TEST SUITE FAILED"
+              exit 1
           }
-
