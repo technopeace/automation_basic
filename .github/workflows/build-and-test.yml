@@ -130,10 +130,38 @@ jobs:
       - name: Run Selenium Integration Test
         shell: pwsh
         run: |
+          # Start the Flask server in the background
           echo "Starting Flask web server in the background..."
           $flaskProcess = Start-Process python -ArgumentList "app_web.py" -PassThru
-          Start-Sleep -Seconds 5
           
+          # --- THE FIX: Robustly wait for the Flask server to be ready ---
+          echo "Waiting for Flask server to respond..."
+          $timeoutSeconds = 30
+          $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+          $serverReady = $false
+          
+          while ($stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) {
+              try {
+                  # Ping the server's root URL
+                  $response = Invoke-WebRequest -Uri "http://127.0.0.1:5000" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+                  if ($response.StatusCode -eq 200) {
+                      echo "✅ Flask server is up and running."
+                      $serverReady = $true
+                      break
+                  }
+              } catch {
+                  # Silently catch connection errors and try again
+              }
+              Start-Sleep -Seconds 1
+          }
+          
+          if (-not $serverReady) {
+              echo "❌ ERROR: Flask server did not start within $timeoutSeconds seconds."
+              Stop-Process -Id $flaskProcess.Id -Force
+              exit 1
+          }
+
+          # Now that the server is ready, run the test
           try {
             $electronPath = Join-Path $env:GITHUB_WORKSPACE 'node_modules\electron\dist\electron.exe'
             $appEntry = Join-Path $env:GITHUB_WORKSPACE 'app_web.js'
@@ -141,7 +169,6 @@ jobs:
             Write-Host "Electron binary: $electronPath"
             Write-Host "App entry file: $appEntry"
 
-            # THE FIX: Removed the single quotes from around the variables.
             $arguments = "automation_selenium.py", $electronPath, $appEntry
             Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
 
@@ -159,6 +186,7 @@ jobs:
               exit 1
             }
           } finally {
+            # This block runs whether the test passes or fails, ensuring the server is always stopped.
             echo "Stopping Flask web server..."
             Stop-Process -Id $flaskProcess.Id -Force
           }
