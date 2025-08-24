@@ -2,8 +2,7 @@
 import sys
 import io
 
-# YENİ: Python'un standart çıktı ve hata akışlarını UTF-8 kullanmaya zorla
-# Bu, Windows'taki UnicodeEncodeError hatasını çözer.
+# Python'un standart çıktı ve hata akışlarını UTF-8 kullanmaya zorla
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 if sys.stderr.encoding != 'utf-8':
@@ -42,11 +41,17 @@ try:
 
     if app_window:
         window = app_window[0]
+        print("Forcing window to the front...")
+        if window.isMinimized:
+            window.restore()
         window.activate()
+        time.sleep(0.5)
         if not window.isActive:
+            print("Window not active, trying to maximize and reactivate...")
             window.maximize()
+            time.sleep(0.5)
             window.activate()
-        print("Target window activated and brought to front.")
+        print("Target window should now be in the foreground.")
         time.sleep(1)
     else:
         print(f"ERROR: Could not find window with title '{target_title}'")
@@ -54,14 +59,17 @@ try:
 
     # --- Step 2: Fill Input Fields ---
     print("Searching for the 'Name' label...")
+    
+    # *** YENİDEN EKLENEN VE DÜZELTİLEN SATIR BURADA ***
     name_label_path = os.path.join(application_path, "isim_label.png")
+    
     name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
 
     if name_label_location:
         pyautogui.click(name_label_location)
         print("Clicked the 'Name:' label to activate window.")
         time.sleep(0.3)
-        pyautogui.click(name_label_location.x, name_label_location.y + 35)
+        pyautogui.click(name_label_location.x, name_label_location.y + 20)
         print("Clicked on name input field.")
         time.sleep(0.5)
         pyperclip.copy("Baris Kahraman")
@@ -69,6 +77,7 @@ try:
         print("Name entered: Baris Kahraman")
     else:
         print(f"ERROR: Could not find '{name_label_path}'")
+        pyautogui.screenshot(os.path.join(application_path, "error_screenshot_label_not_found.png"))
         sys.exit(1)
 
     time.sleep(0.5)
