@@ -245,9 +245,8 @@ jobs:
           $appPath = Join-Path $env:GITHUB_WORKSPACE 'app.py'
           echo "Launching Tkinter GUI app directly..."
           $process = Start-Process $pythonPath -ArgumentList $appPath -PassThru
-          Start-Sleep -Seconds 2
 
-          echo "Finding top-level window handle..."
+          echo "Finding top-level window handle (wait up to 30s)..."
           Add-Type @"
           using System;
           using System.Runtime.InteropServices;
@@ -258,14 +257,16 @@ jobs:
           "@
 
           $hwnd = [IntPtr]::Zero
-          for ($i=0; $i -lt 15; $i++) {
+          $timeout = 30
+          for ($i=0; $i -lt $timeout; $i++) {
               $hwnd = [Win32]::FindWindow($null, "Construction Assistant - Demo")
               if ($hwnd -ne [IntPtr]::Zero) { break }
               Start-Sleep -Seconds 1
           }
 
           if ($hwnd -eq [IntPtr]::Zero) {
-              echo "❌ Could not find window handle."
+              echo "❌ Could not find window handle after $timeout seconds."
+              Get-Process | Select-Object Id, ProcessName
               exit 1
           }
 
