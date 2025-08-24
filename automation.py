@@ -35,7 +35,7 @@ time.sleep(5)
 
 try:
     # --- Step 1: Hedef Pencereyi Bul ve Tam Ekran Yap ---
-    target_title = "İnşaat Asistanı - Demo"
+    target_title = "Construction Assistant - Demo"
     print(f"Searching for window with title: '{target_title}'")
     app_window = gw.getWindowsWithTitle(target_title)
 
