@@ -61,7 +61,6 @@ try:
     name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
 
     if name_label_location:
-        # Etikete tıklamak yerine doğrudan giriş alanına tıkla
         pyautogui.click(name_label_location.x, name_label_location.y + 20)
         print("Clicked on name input field.")
         time.sleep(0.5)
@@ -79,9 +78,9 @@ try:
     pyautogui.press("tab")
     time.sleep(0.5)
 
-    pyperclip.copy("35")
+    pyperclip.copy("28")
     pyautogui.hotkey("ctrl", "v")
-    print("Age entered: 35")
+    print("Age entered: 28")
     time.sleep(0.5)
 
     # --- Step 3: Activate Save Button ---

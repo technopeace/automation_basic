@@ -44,13 +44,13 @@ jobs:
         run: echo "tag=v1.0.${{ github.run_number }}" >> $env:GITHUB_OUTPUT
 
       - name: Zip Release Folder
-        run: Compress-Archive -Path release_package/* -DestinationPath "InsaatAsistani-${{ steps.version.outputs.tag }}.zip"
+        run: Compress-Archive -Path release_package/* -DestinationPath "ConstructionAssistant-${{ steps.version.outputs.tag }}.zip"
 
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-release-package
-          path: "InsaatAsistani-${{ steps.version.outputs.tag }}.zip"
+          path: "ConstructionAssistant-${{ steps.version.outputs.tag }}.zip"
 
   test:
     needs: build
@@ -71,7 +71,7 @@ jobs:
           name: windows-release-package
 
       - name: Unzip Release Package
-        run: Expand-Archive -Path "InsaatAsistani-${{ needs.build.outputs.version }}.zip" -DestinationPath test_run
+        run: Expand-Archive -Path "ConstructionAssistant-${{ needs.build.outputs.version }}.zip" -DestinationPath test_run
 
       - name: Install and start virtual display
         run: |
@@ -83,7 +83,7 @@ jobs:
         shell: pwsh
         run: |
           echo "Starting target application..."
-          # DÜZELTME 1: Pencereyi tam ekran (Maximized) başlatarak odaklanma sorununu kökünden çözüyoruz.
+          # FIX 1: We start the window maximized to definitively solve any focus issues.
           Start-Process python -ArgumentList "app.py" -WindowStyle Maximized
           Start-Sleep -Seconds 7
 
@@ -98,12 +98,11 @@ jobs:
           echo $output
           echo "--------------------------------"
 
-          # DEBUG: Test sonrası dosya listesini göstererek artifact sorununu teşhis et
+          # DEBUG: List files after the test to diagnose any artifact issues.
           echo "--- FILE LISTING AFTER TEST ---"
           Get-ChildItem -Path . -Recurse
           echo "---------------------------------"
 
-          # DÜZELTME 2: Bozulan expected_text kontrolünü orijinal haline getiriyoruz.
           $expected_text = "Saved! Name: Baris Kahraman Age: 35"
           if ($output -like "*$expected_text*") {
             echo "✅ TEST PASSED"
