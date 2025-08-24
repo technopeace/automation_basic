@@ -86,28 +86,13 @@ jobs:
           echo "Starting target Tkinter application..."
           Start-Process python -ArgumentList "app.py" -WindowStyle Maximized
           Start-Sleep -Seconds 7
-
           echo "Running PyAutoGUI automation..."
           Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
-          
           $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
-          
-          echo "--- PyAutoGUI AUTOMATION OUTPUT ---"
-          echo $output
-          echo "-----------------------------------"
-
+          echo "--- PyAutoGUI AUTOMATION OUTPUT ---"; echo $output; echo "-----------------------------------"
           $expected_text = "Saved! Name: Baris Kahraman Age: 28"
-          if ($output -like "*$expected_text*") {
-            echo "✅ PyAutoGUI TEST PASSED"
-            exit 0
-          } else {
-            echo "❌ PyAutoGUI TEST FAILED"
-            echo "Read:"
-            echo $output
-            echo "Expected:"
-            echo $expected_text
-            exit 1
-          }
+          if ($output -like "*$expected_text*") { echo "✅ PyAutoGUI TEST PASSED" }
+          else { echo "❌ PyAutoGUI TEST FAILED"; exit 1 }
 
       - name: Upload PyAutoGUI Screenshots
         if: always()
@@ -136,7 +121,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          # The 'cache' option is removed to prevent the lock file error.
+          # cache: 'npm'  <- THIS LINE IS REMOVED
 
       - name: Install Python dependencies for web test
         run: pip install -r requirements_web.txt
