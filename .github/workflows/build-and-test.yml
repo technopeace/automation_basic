@@ -82,13 +82,13 @@ jobs:
       - name: Run Integration Test
         shell: pwsh
         run: |
-          # 1. Adım: Test edilecek ana uygulamayı NORMAL ve GÖRÜNÜR bir şekilde başlat.
+          # 1. Adım: Ana uygulamayı GÖRÜNÜR olarak başlat.
           echo "Starting target application..."
           Start-Process python -ArgumentList "app.py" -WindowStyle Normal
           Start-Sleep -Seconds 7
 
           # 2. Adım: Tüm test mantığını bir PowerShell script dosyasına yaz.
-          # ÖNEMLİ: Değişkenlerin doğru yorumlanması için here-string içindeki $ işaretleri kaçırıldı (\$).
+          # Script dosyası İÇİNDEKİ değişkenler `\` ile kaçırılır.
           @"
           echo "Running Automation.exe in a minimized window..."
           \$process = Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
@@ -111,7 +111,7 @@ jobs:
           }
           "@ | Set-Content -Path test_logic.ps1 -Encoding utf8
 
-          # 3. Adım: Oluşturulan test script'ini SİMGE DURUMUNDA KÜÇÜLTÜLMÜŞ olarak çalıştır.
+          # 3. Adım: Oluşturulan test script'ini KÜÇÜLTÜLMÜŞ olarak çalıştır.
           echo "Executing test logic in the background..."
           $process = $null
           try {
@@ -122,17 +122,16 @@ jobs:
           }
           
           # 4. Adım: Test script'inin çıkış kodunu kontrol et.
-          # DÜZELTME: Değişkenin varlığı kontrol ediliyor ve $ işareti DOĞRU KULLANILIYOR.
-          if (\$null -ne \$process -and \$process.ExitCode -ne 0) {
-              Write-Host "❌ Test script failed with exit code: \$(\$process.ExitCode)"
-              # stdout dosyasını tekrar oku ve göster
+          # DÜZELTME: Bu blok ana script'te çalıştığı için $ işaretleri ASLA kaçırılmaz.
+          if ($null -ne $process -and $process.ExitCode -ne 0) {
+              Write-Host "❌ Test script failed with exit code: $($process.ExitCode)"
               if (Test-Path stdout.txt) {
                 Write-Host "--- Captured output from failed test ---"
                 Get-Content stdout.txt
                 Write-Host "----------------------------------------"
               }
               exit 1
-          } elseif (\$null -eq \$process) {
+          } elseif ($null -eq $process) {
               Write-Error "❌ The test process object was not created. Test failed."
               exit 1
           } else {
