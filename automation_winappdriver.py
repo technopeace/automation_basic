@@ -2,6 +2,7 @@ import sys
 import io
 import time
 from appium import webdriver
+from appium.options.common.base import AppiumOptions
 from selenium.common.exceptions import WebDriverException, NoSuchElementException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -26,19 +27,21 @@ print(f"Starting WinAppDriver test with launcher: {APP_LAUNCHER_PATH}")
 
 driver = None
 try:
-    # --- THE FINAL FIX: Use a simple dictionary with desired_capabilities ---
-    # This is the most direct and compatible method for WinAppDriver.
+    # --- THE FINAL FIX: Build capabilities as a dictionary and load them into an Options object ---
+    # This is the most compatible way to satisfy the new library's requirement for an 'options' object.
     capabilities = {
         "platformName": "Windows",
         "appium:automationName": "Windows",
         "appium:app": APP_LAUNCHER_PATH,
         "appium:createSessionTimeout": 20000
     }
+    app_options = AppiumOptions().load_capabilities(capabilities)
 
     # --- Start session ---
+    # Pass the 'options' object to the Remote WebDriver constructor
     driver = webdriver.Remote(
         command_executor=WINAPPDRIVER_URL,
-        desired_capabilities=capabilities
+        options=app_options
     )
 
     print("✅ Session created successfully with WinAppDriver.")
