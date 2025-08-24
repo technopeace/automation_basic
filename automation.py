@@ -69,6 +69,8 @@ try:
         pyautogui.click(name_label_location)
         print("Clicked the 'Name:' label to activate window.")
         time.sleep(0.3)
+        pyautogui.click(name_label_location.x, name_label_location.y - 5)
+        time.sleep(0.3)
         pyautogui.click(name_label_location.x, name_label_location.y + 20)
         print("Clicked on name input field.")
         time.sleep(0.5)
