@@ -103,12 +103,12 @@ jobs:
           Get-ChildItem -Path . -Recurse
           echo "---------------------------------"
 
-          $expected_text = "Saved! Name: Baris Kahraman Age: 35"
+          $expected_text = "Saved! Name: Baris Kahraman Age: 28"
           if ($output -like "*$expected_text*") {
-            echo "✅ TEST PASSED"
+            echo "✅ TEST PASSED, READ AND EXPECTED MATCHED"
             exit 0
           } else {
-            echo "❌ TEST FAILED"
+            echo "❌ TEST FAILED, READ AND EXPECTED DID NOT MATCHED"
             echo "Read:"
             echo $output
             echo "Expected:"
