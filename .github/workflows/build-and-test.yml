@@ -102,6 +102,7 @@ jobs:
           path: |
             test_run/full-screenshot.png
             test_run/ocr-screenshot.png
+
   test_selenium:
     name: Test with Selenium
     needs: build
@@ -134,7 +135,7 @@ jobs:
           echo "Starting Flask web server in the background..."
           $flaskProcess = Start-Process python -ArgumentList "app_web.py" -PassThru
           
-          # --- THE FIX: Robustly wait for the Flask server to be ready ---
+          # Wait for Flask server to be ready
           echo "Waiting for Flask server to respond..."
           $timeoutSeconds = 30
           $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -142,16 +143,13 @@ jobs:
           
           while ($stopwatch.Elapsed.TotalSeconds -lt $timeoutSeconds) {
               try {
-                  # Ping the server's root URL
                   $response = Invoke-WebRequest -Uri "http://127.0.0.1:5000" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
                   if ($response.StatusCode -eq 200) {
                       echo "✅ Flask server is up and running."
                       $serverReady = $true
                       break
                   }
-              } catch {
-                  # Silently catch connection errors and try again
-              }
+              } catch { }
               Start-Sleep -Seconds 1
           }
           
@@ -161,7 +159,6 @@ jobs:
               exit 1
           }
 
-          # Now that the server is ready, run the test
           try {
             $electronPath = Join-Path $env:GITHUB_WORKSPACE 'node_modules\electron\dist\electron.exe'
             $appEntry = Join-Path $env:GITHUB_WORKSPACE 'app_web.js'
@@ -178,6 +175,16 @@ jobs:
             echo $output
             echo "----------------------------------"
 
+            # Take full-screen screenshot
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+            $bitmap.Save("full-screenshot.png")
+            echo "Full-screen screenshot saved as full-screenshot.png"
+
             $expected_text = "✅ SELENIUM TEST PASSED"
             if ($output -like "*$expected_text*") {
               echo "✅ SELENIUM TEST SUITE PASSED"
@@ -186,14 +193,15 @@ jobs:
               exit 1
             }
           } finally {
-            # This block runs whether the test passes or fails, ensuring the server is always stopped.
             echo "Stopping Flask web server..."
             Stop-Process -Id $flaskProcess.Id -Force
           }
 
-      - name: Upload Selenium Failure Screenshot
-        if: failure()
+      - name: Upload Selenium Screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: selenium-failure-screenshot
-          path: selenium-failure-screenshot.png
+          name: selenium-screenshots
+          path: |
+            selenium-failure-screenshot.png
+            full-screenshot.png
