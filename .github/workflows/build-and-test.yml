@@ -121,38 +121,26 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Python dependencies for web test
+      - name: Install Python dependencies
         run: pip install -r requirements_web.txt
-      
+
       - name: Install Node.js dependencies
         run: npm install
-
-      - name: Build Electron App
-        run: npm run dist
-      
-      - name: List Build Artifacts for Debugging
-        run: ls -R dist
-        shell: bash
 
       - name: Run Selenium Integration Test
         shell: pwsh
         run: |
-          echo "Starting Flask web server in the background..."
-          Start-Process python -ArgumentList "app_web.py"
-          Start-Sleep -Seconds 5
+          $electronPath = Join-Path $env:GITHUB_WORKSPACE 'node_modules\electron\dist\electron.exe'
+          $appEntry = Join-Path $env:GITHUB_WORKSPACE 'app_web.js'   # change if your entry is main.js
 
-          echo "Running Selenium automation script..."
-          
-          # --- THE FIX: Construct the ABSOLUTE path to the executable ---
-          $exePath = Join-Path $env:GITHUB_WORKSPACE 'dist\construction-assistant-web.exe'
-          Write-Host "Will launch Electron app from: $exePath"
-          
-          # Pass the absolute path as a command-line argument to the Python script
-          $arguments = "automation_selenium.py", "'$exePath'"
+          Write-Host "Electron binary: $electronPath"
+          Write-Host "App entry file: $appEntry"
+
+          $arguments = "automation_selenium.py", $electronPath, $appEntry
           Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
-          
+
           $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
-          
+
           echo "--- SELENIUM AUTOMATION OUTPUT ---"
           echo $output
           echo "----------------------------------"

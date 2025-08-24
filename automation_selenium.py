@@ -1,13 +1,6 @@
 # automation_selenium.py
 import sys
 import io
-
-# Force standard output and error streams to use UTF-8 encoding
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -15,30 +8,43 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# --- THE FIX: Get the Electron app's absolute path from a command-line argument ---
-if len(sys.argv) < 2:
-    print("❌ ERROR: The absolute path to the Electron executable was not provided.")
+# Ensure UTF-8 output
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# -------------------------------------------------------------------
+# Command line arguments:
+#   1. Path to electron.exe (from node_modules)
+#   2. Path to your app entry file (main.js / app_web.js)
+# -------------------------------------------------------------------
+if len(sys.argv) < 3:
+    print("❌ ERROR: You must provide the electron.exe path and app entry file.")
     sys.exit(1)
-ELECTRON_APP_PATH = sys.argv[1]
-print(f"Using Electron executable at absolute path: {ELECTRON_APP_PATH}")
 
+ELECTRON_BINARY_PATH = sys.argv[1]
+APP_ENTRY_FILE = sys.argv[2]
 
-# The ChromeDriver path can remain relative to the workspace root.
+print(f"Using Electron binary: {ELECTRON_BINARY_PATH}")
+print(f"Launching app entry file: {APP_ENTRY_FILE}")
+
 CHROMEDRIVER_PATH = "./node_modules/electron-chromedriver/bin/chromedriver.exe"
 
 driver = None
 try:
     print("Starting Selenium test for Electron app...")
+
     options = Options()
-    options.binary_location = ELECTRON_APP_PATH
-    
+    options.binary_location = ELECTRON_BINARY_PATH
+    # Tell Electron which app entry to load
+    options.add_argument(f"app={APP_ENTRY_FILE}")
+
     service = Service(executable_path=CHROMEDRIVER_PATH)
-    
     driver = webdriver.Chrome(service=service, options=options)
-    
     wait = WebDriverWait(driver, 10)
 
-    # Find web elements by their ID and interact with them.
+    # Example UI interactions
     name_field = wait.until(EC.presence_of_element_located((By.ID, "name")))
     name_field.send_keys("Baris Kahraman")
     print("Name entered: Baris Kahraman")
@@ -51,13 +57,9 @@ try:
     save_button.click()
     print("Save button clicked.")
 
-    # Wait for the success message to appear.
-    wait.until(EC.text_to_be_present_in_element(
-        (By.ID, "response"), "Saved!"
-    ))
+    # Verify success message
+    wait.until(EC.text_to_be_present_in_element((By.ID, "response"), "Saved!"))
     print("Success response verified on page.")
-
-    # Final success message for the YAML to check.
     print("✅ SELENIUM TEST PASSED")
 
 except Exception as e:
