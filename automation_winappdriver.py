@@ -19,7 +19,8 @@ if sys.stderr.encoding != 'utf-8':
 # Get the absolute path to the app.py script to be tested
 APP_PATH = os.path.abspath("app.py")
 PYTHON_EXE_PATH = sys.executable
-WINAPPDRIVER_URL = 'http://122.0.0.1:4723'
+# --- FIX 3: Corrected the WinAppDriver IP Address ---
+WINAPPDRIVER_URL = 'http://127.0.0.1:4723'
 
 driver = None
 app_process = None
