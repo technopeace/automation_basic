@@ -121,8 +121,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          # The 'cache' option is removed to prevent the lock file error.
-          # cache: 'npm'  <- THIS LINE IS REMOVED
 
       - name: Install Python dependencies for web test
         run: pip install -r requirements_web.txt
@@ -132,7 +130,11 @@ jobs:
 
       - name: Build Electron App
         run: npm run dist
-        
+      
+      - name: List Build Artifacts for Debugging
+        run: ls -R dist
+        shell: bash
+
       - name: Run Selenium Integration Test
         shell: pwsh
         run: |

@@ -1,5 +1,14 @@
 # automation_selenium.py
 import sys
+import io
+
+# --- FIX 2: Force standard output and error streams to use UTF-8 encoding ---
+# This prevents UnicodeEncodeError when printing emojis or special characters.
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -7,11 +16,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# --- FIX 1: Path now matches the `productName` in package.json ---
-ELECTRON_APP_PATH = "./dist/Construction Assistant Web.exe"
+# --- FIX 1: Path now matches the `name` from package.json, which is more reliable ---
+ELECTRON_APP_PATH = "./dist/construction-assistant-web.exe"
 
-# --- FIX 2: Point to the compatible ChromeDriver bundled with Electron ---
-# This avoids version mismatch errors.
+# Point to the compatible ChromeDriver bundled with Electron.
 CHROMEDRIVER_PATH = "./node_modules/electron-chromedriver/bin/chromedriver.exe"
 
 driver = None
@@ -21,13 +29,12 @@ try:
     # Point Selenium to the Electron app's binary.
     options.binary_location = ELECTRON_APP_PATH
     
-    # Create a Service object pointing to the correct driver
+    # Create a Service object pointing to the correct driver.
     service = Service(executable_path=CHROMEDRIVER_PATH)
     
-    # Launch the driver
+    # Launch the driver.
     driver = webdriver.Chrome(service=service, options=options)
     
-    # Use an explicit wait for more reliable tests.
     wait = WebDriverWait(driver, 10)
 
     # Find web elements by their ID and interact with them.
@@ -59,7 +66,7 @@ except Exception as e:
     if driver:
         driver.save_screenshot('selenium-failure-screenshot.png')
         print("Failure screenshot saved as selenium-failure-screenshot.png")
-    # Re-raise the exception to make sure the script exits with an error code
+    # Re-raise the exception to make sure the script exits with an error code.
     raise e
 finally:
     if driver:
