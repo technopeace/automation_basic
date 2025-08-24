@@ -3,7 +3,7 @@ import io
 import time
 from appium import webdriver
 from appium.options.common.base import AppiumOptions
-from selenium.common.exceptions import WebDriverException, NoSuchElementException, TimeoutException
+from selenium.common.exceptions import WebDriverException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from appium.webdriver.common.appiumby import AppiumBy
@@ -17,28 +17,24 @@ if sys.stderr.encoding != 'utf-8':
 # WinAppDriver URL
 WINAPPDRIVER_URL = "http://127.0.0.1:4723"
 
-# The app being tested is the original Tkinter app, launched via a .bat file
 if len(sys.argv) < 2:
-    print("❌ ERROR: Missing launcher path argument (.bat).")
+    print("❌ ERROR: Missing appTopLevelWindow (HWND in HEX).")
     sys.exit(1)
 
-APP_LAUNCHER_PATH = sys.argv[1]
-print(f"Starting WinAppDriver test with launcher: {APP_LAUNCHER_PATH}")
+APP_WINDOW_HANDLE = sys.argv[1]
+print(f"Starting WinAppDriver test with appTopLevelWindow: {APP_WINDOW_HANDLE}")
 
 driver = None
 try:
-    # --- THE FINAL FIX: Build capabilities as a dictionary and load them into an Options object ---
-    # This is the most compatible way to satisfy the new library's requirement for an 'options' object.
+    # --- Use appTopLevelWindow instead of app ---
     capabilities = {
         "platformName": "Windows",
         "appium:automationName": "Windows",
-        "appium:app": APP_LAUNCHER_PATH,
+        "appium:appTopLevelWindow": APP_WINDOW_HANDLE,
         "appium:createSessionTimeout": 20000
     }
     app_options = AppiumOptions().load_capabilities(capabilities)
 
-    # --- Start session ---
-    # Pass the 'options' object to the Remote WebDriver constructor
     driver = webdriver.Remote(
         command_executor=WINAPPDRIVER_URL,
         options=app_options
@@ -46,24 +42,22 @@ try:
 
     print("✅ Session created successfully with WinAppDriver.")
 
-    # --- Wait for the main window to appear and be ready ---
+    # --- Wait for the main window elements ---
     wait = WebDriverWait(driver, 20)
-    wait.until(EC.presence_of_element_located((AppiumBy.NAME, "Construction Assistant - Demo")))
-    print("✅ Main application window located.")
 
-    # --- Perform UI interactions ---
+    # Find entry fields by class name
     entry_fields = wait.until(EC.presence_of_all_elements_located((AppiumBy.CLASS_NAME, "TEntry")))
-    
+
     entry_fields[0].send_keys("Baris Kahraman")
     print("Name entered: Baris Kahraman")
-    
+
     entry_fields[1].send_keys("28")
     print("Age entered: 28")
 
     driver.find_element(AppiumBy.NAME, "Save").click()
     print("Save button clicked.")
 
-    # --- Verify the dialog box result ---
+    # Verify the dialog text
     dialog_text_element = wait.until(EC.presence_of_element_located(
         (AppiumBy.XPATH, "/Window[@Name='Information']/Text")
     ))
@@ -86,6 +80,5 @@ except Exception as e:
     print(f"❌ An unexpected error occurred: {e}")
     sys.exit(1)
 finally:
-    # If the driver session was created, quit it.
     if driver:
         driver.quit()

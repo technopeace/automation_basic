@@ -212,7 +212,6 @@ jobs:
           path: |
             selenium-failure-screenshot.png
             full-screenshot.png
-
   test_winappdriver:
     name: Test with WinAppDriver
     needs: build
@@ -220,12 +219,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install Python dependencies for WinAppDriver
         run: pip install -r requirements_winappdriver.txt
+
       - name: Install and Start WinAppDriver
         run: |
           echo "Downloading and installing WinAppDriver..."
@@ -234,16 +236,42 @@ jobs:
           echo "Starting WinAppDriver server in the background..."
           Start-Process "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
           Start-Sleep -Seconds 5
+
+      - name: Start Tkinter app and get window handle
+        id: get_hwnd
+        shell: pwsh
+        run: |
+          echo "Starting Tkinter app..."
+          $process = Start-Process python -ArgumentList "app.py" -PassThru
+          Start-Sleep -Seconds 5
+
+          echo "Finding main window handle..."
+          Add-Type @"
+          using System;
+          using System.Runtime.InteropServices;
+          public class Win32 {
+            [DllImport("user32.dll", SetLastError=true)]
+            public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+          }
+"@
+
+          $hwnd = [Win32]::FindWindow($null, "Construction Assistant - Demo")
+          if ($hwnd -eq [IntPtr]::Zero) {
+            echo "❌ Could not find window handle."
+            exit 1
+          }
+
+          $hwndHex = ('{0:X}' -f $hwnd.ToInt64())
+          echo "Window handle: $hwndHex"
+          echo "::set-output name=hwnd::$hwndHex"
+
       - name: Run WinAppDriver Integration Test
         shell: pwsh
         run: |
-          # THE FIX: Create a launcher for the REAL application (app.py)
-          Set-Content -Path "launch.bat" -Value "python app.py"
-          $launcherPath = Join-Path $env:GITHUB_WORKSPACE 'launch.bat'
-          echo "Running WinAppDriver automation script against launcher: $launcherPath"
+          $hwnd = "${{ steps.get_hwnd.outputs.hwnd }}"
+          echo "Running WinAppDriver automation script with window handle: $hwnd"
           
-          # Pass the launcher path to the automation script
-          $arguments = "automation_winappdriver.py", $launcherPath
+          $arguments = "automation_winappdriver.py", $hwnd
           Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
           
           $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
