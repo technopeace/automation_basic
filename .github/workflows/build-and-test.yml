@@ -130,7 +130,6 @@ jobs:
       - name: Run Selenium Integration Test
         shell: pwsh
         run: |
-          # Start the Flask server in the background and get its process object
           echo "Starting Flask web server in the background..."
           $flaskProcess = Start-Process python -ArgumentList "app_web.py" -PassThru
           Start-Sleep -Seconds 5
@@ -142,7 +141,8 @@ jobs:
             Write-Host "Electron binary: $electronPath"
             Write-Host "App entry file: $appEntry"
 
-            $arguments = "automation_selenium.py", "'$electronPath'", "'$appEntry'"
+            # THE FIX: Removed the single quotes from around the variables.
+            $arguments = "automation_selenium.py", $electronPath, $appEntry
             Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
 
             $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
@@ -159,7 +159,6 @@ jobs:
               exit 1
             }
           } finally {
-            # This block runs whether the test passes or fails, ensuring the server is always stopped.
             echo "Stopping Flask web server..."
             Stop-Process -Id $flaskProcess.Id -Force
           }

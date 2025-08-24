@@ -17,14 +17,15 @@ if sys.stderr.encoding != 'utf-8':
 # -------------------------------------------------------------------
 # Command line arguments:
 #   1. Path to electron.exe (from node_modules)
-#   2. Path to your app entry file (app_web.js)
+#   2. Path to your app entry file (main.js / app_web.js)
 # -------------------------------------------------------------------
 if len(sys.argv) < 3:
     print("❌ ERROR: You must provide the electron.exe path and app entry file.")
     sys.exit(1)
 
-ELECTRON_BINARY_PATH = sys.argv[1]
-APP_ENTRY_FILE = sys.argv[2]
+# THE FIX: Strip any surrounding quotes from the arguments to be safe.
+ELECTRON_BINARY_PATH = sys.argv[1].strip("'\"")
+APP_ENTRY_FILE = sys.argv[2].strip("'\"")
 
 print(f"Using Electron binary: {ELECTRON_BINARY_PATH}")
 print(f"Launching app entry file: {APP_ENTRY_FILE}")
@@ -37,13 +38,12 @@ try:
 
     options = Options()
     options.binary_location = ELECTRON_BINARY_PATH
-    
-    # --- THE FIX: Pass the app entry file as a direct argument, not a named parameter ---
+    # Pass the app entry file as a direct argument
     options.add_argument(APP_ENTRY_FILE)
 
     service = Service(executable_path=CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
-    wait = WebDriverWait(driver, 10)
+    wait = WebDriverWait(driver, 15) # Increased wait time for CI
 
     # Example UI interactions
     name_field = wait.until(EC.presence_of_element_located((By.ID, "name")))
