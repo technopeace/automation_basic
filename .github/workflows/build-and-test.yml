@@ -213,12 +213,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download EXE artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Automation-exe
+          path: dist
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
-      - name: Install Python dependencies for WinAppDriver
+
+      - name: Install test dependencies
         run: pip install -r requirements_winappdriver.txt
 
       - name: Install and Start WinAppDriver
@@ -229,26 +235,24 @@ jobs:
           echo "Starting WinAppDriver server in the background..."
           Start-Process "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
           Start-Sleep -Seconds 5
+        shell: pwsh
 
       - name: Run WinAppDriver Integration Test
         shell: pwsh
         run: |
-          # Create a simple batch file to launch the Python GUI app
-          Set-Content -Path "launch.bat" -Value "python app.py"
-          $launcherPath = Join-Path $env:GITHUB_WORKSPACE 'launch.bat'
-
-          echo "Running WinAppDriver automation script against launcher: $launcherPath"
+          $exePath = Join-Path $env:GITHUB_WORKSPACE 'dist\Automation.exe'
+          echo "Running WinAppDriver automation script against EXE: $exePath"
           
-          $arguments = "automation_winappdriver.py", $launcherPath
+          $arguments = "automation_winappdriver.py", $exePath
           Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
-          
-          $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
 
+          $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
+          
           echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"
           echo $output
           echo "--------------------------------------"
           
-          $expected_text = "✅ WINAPPDRIVER TEST PASSED"
+          $expected_text = "🎉 WINAPPDRIVER TEST PASSED"
           if ($output -like "*$expected_text*") {
             echo "✅ WINAPPDRIVER TEST SUITE PASSED"
           } else {
