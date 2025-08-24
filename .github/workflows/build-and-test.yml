@@ -216,7 +216,6 @@ jobs:
     name: Test with WinAppDriver
     needs: build
     runs-on: windows-latest
-    if: ${{ github.runner.self_hosted }}   # Sadece self-hosted runner üzerinde çalışır
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -292,6 +291,3 @@ jobs:
           } else {
             echo "❌ WINAPPDRIVER TEST SUITE FAILED"
             exit 1
-          }
-
-
