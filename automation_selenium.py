@@ -1,7 +1,6 @@
 # automation_selenium.py
 import sys
 import io
-import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -15,22 +14,22 @@ if sys.stdout.encoding != 'utf-8':
 if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-# Get the project's root directory
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Command line arguments
+# -------------------------------------------------------------------
+# Command line arguments:
+#   1. Path to electron.exe (from node_modules)
+#   2. Path to your app entry file (main.js / app_web.js)
+# -------------------------------------------------------------------
 if len(sys.argv) < 3:
     print("❌ ERROR: You must provide the electron.exe path and app entry file.")
     sys.exit(1)
 
-ELECTRON_BINARY_PATH = sys.argv[1].strip("'\"")
-APP_ENTRY_FILE = sys.argv[2].strip("'\"")
+ELECTRON_BINARY_PATH = sys.argv[1]
+APP_ENTRY_FILE = sys.argv[2]
 
 print(f"Using Electron binary: {ELECTRON_BINARY_PATH}")
 print(f"Launching app entry file: {APP_ENTRY_FILE}")
 
-# THE FIX: Construct an absolute path to chromedriver to be safe
-CHROMEDRIVER_PATH = os.path.join(BASE_DIR, "node_modules", "electron-chromedriver", "bin", "chromedriver.exe")
+CHROMEDRIVER_PATH = "./node_modules/electron-chromedriver/bin/chromedriver.exe"
 
 driver = None
 try:
@@ -38,14 +37,14 @@ try:
 
     options = Options()
     options.binary_location = ELECTRON_BINARY_PATH
-    # Pass the app entry file as a direct argument
-    options.add_argument(APP_ENTRY_FILE)
+    # Tell Electron which app entry to load
+    options.add_argument(f"app={APP_ENTRY_FILE}")
 
     service = Service(executable_path=CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
-    wait = WebDriverWait(driver, 15)
+    wait = WebDriverWait(driver, 10)
 
-    # UI interactions
+    # Example UI interactions
     name_field = wait.until(EC.presence_of_element_located((By.ID, "name")))
     name_field.send_keys("Baris Kahraman")
     print("Name entered: Baris Kahraman")
