@@ -228,6 +228,12 @@ jobs:
       - name: Install Python dependencies for WinAppDriver
         run: pip install -r requirements_winappdriver.txt
 
+      - name: Install and start virtual desktop
+        run: |
+          choco install tightvnc -y
+          Start-Process "C:\Program Files\TightVNC\tvnserver.exe" -ArgumentList "-run"
+          Start-Sleep -Seconds 5
+
       - name: Install and Start WinAppDriver
         run: |
           echo "Downloading and installing WinAppDriver..."
@@ -243,8 +249,8 @@ jobs:
         run: |
           $pythonPath = "python"
           $appPath = Join-Path $env:GITHUB_WORKSPACE 'app.py'
-          echo "Launching Tkinter GUI app directly..."
-          $process = Start-Process $pythonPath -ArgumentList $appPath -PassThru
+          echo "Launching Tkinter GUI app in virtual desktop..."
+          $process = Start-Process $pythonPath -ArgumentList $appPath -PassThru -WindowStyle Maximized
 
           echo "Finding top-level window handle (wait up to 30s)..."
           Add-Type @"
@@ -291,3 +297,4 @@ jobs:
           } else {
             echo "❌ WINAPPDRIVER TEST SUITE FAILED"
             exit 1
+
