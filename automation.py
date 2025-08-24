@@ -34,41 +34,34 @@ print("Automation will start in 5 seconds...")
 time.sleep(5)
 
 try:
-    # --- Step 1: Hedef Pencereyi Bul ve Aktif Hale Getir ---
+    # --- Step 1: Hedef Pencereyi Bul ve Tam Ekran Yap ---
     target_title = "İnşaat Asistanı - Demo"
     print(f"Searching for window with title: '{target_title}'")
     app_window = gw.getWindowsWithTitle(target_title)
 
     if app_window:
         window = app_window[0]
-        print("Forcing window to the front...")
+        # --- DEĞİŞİKLİK BURADA: Pencereyi her zaman tam ekran yap ---
+        print("Forcing window to the front and maximizing...")
         if window.isMinimized:
-            window.restore()
-        window.activate()
-        time.sleep(0.5)
-        if not window.isActive:
-            print("Window not active, trying to maximize and reactivate...")
-            window.maximize()
-            time.sleep(0.5)
-            window.activate()
-        print("Target window should now be in the foreground.")
-        time.sleep(1)
+            window.restore()  # Önce simge durumundan çıkar
+        
+        window.maximize()     # Pencereyi tam ekran yap
+        window.activate()     # Odağı pencereye ver
+        
+        print("Target window maximized and activated.")
+        time.sleep(1.5)       # Tam ekran animasyonunun bitmesi için biraz bekle
     else:
         print(f"ERROR: Could not find window with title '{target_title}'")
         sys.exit(1)
 
     # --- Step 2: Fill Input Fields ---
     print("Searching for the 'Name' label...")
-    
-    # *** YENİDEN EKLENEN VE DÜZELTİLEN SATIR BURADA ***
     name_label_path = os.path.join(application_path, "isim_label.png")
-    
     name_label_location = pyautogui.locateCenterOnScreen(name_label_path, confidence=0.3)
 
     if name_label_location:
-        pyautogui.click(name_label_location)
-        print("Clicked the 'Name:' label to activate window.")
-        time.sleep(0.3)
+        # Etikete tıklamak yerine doğrudan giriş alanına tıkla
         pyautogui.click(name_label_location.x, name_label_location.y + 20)
         print("Clicked on name input field.")
         time.sleep(0.5)

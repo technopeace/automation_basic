@@ -82,61 +82,39 @@ jobs:
       - name: Run Integration Test
         shell: pwsh
         run: |
-          # 1. Adım: Ana uygulamayı GÖRÜNÜR olarak başlat.
           echo "Starting target application..."
-          Start-Process python -ArgumentList "app.py" -WindowStyle Normal
+          # DÜZELTME 1: Pencereyi tam ekran (Maximized) başlatarak odaklanma sorununu kökünden çözüyoruz.
+          Start-Process python -ArgumentList "app.py" -WindowStyle Maximized
           Start-Sleep -Seconds 7
 
-          # 2. Adım: Tüm test mantığını bir PowerShell script dosyasına yaz.
-          @"
-          echo "Running Automation.exe in a minimized window..."
+          echo "Running Automation.exe..."
+          Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
           
-          # NİHAİ DÜZELTME: Automation.exe'ye kendi klasörünü çalışma dizini olarak veriyoruz.
-          # Bu, dosyaların doğru yere kaydedilmesini garantiler.
-          \$process = Start-Process -FilePath "./test_run/Automation.exe" -WorkingDirectory "./test_run" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
-          
-          \$stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
-          \$stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
-          \$output = \$stdout + \$stderr
+          $stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
+          $stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
+          $output = $stdout + $stderr
           
           echo "--- AUTOMATION OUTPUT ---"
-          echo \$output
+          echo $output
           echo "--------------------------------"
-          
-          \$expected_text = "Automation completed successfully!"
-          if (\$output -like "*\$expected_text*") {
+
+          # DEBUG: Test sonrası dosya listesini göstererek artifact sorununu teşhis et
+          echo "--- FILE LISTING AFTER TEST ---"
+          Get-ChildItem -Path . -Recurse
+          echo "---------------------------------"
+
+          # DÜZELTME 2: Bozulan expected_text kontrolünü orijinal haline getiriyoruz.
+          $expected_text = "Kaydedildi! Isim: Baris Kahraman Yas: 35"
+          if ($output -like "*$expected_text*") {
             echo "✅ TEST PASSED"
             exit 0
           } else {
             echo "❌ TEST FAILED"
+            echo "Read:"
+            echo $output
+            echo "Expected:"
+            echo $expected_text
             exit 1
-          }
-          "@ | Set-Content -Path test_logic.ps1 -Encoding utf8
-
-          # 3. Adım: Oluşturulan test script'ini KÜÇÜLTÜLMÜŞ olarak çalıştır.
-          echo "Executing test logic in the background..."
-          $process = $null
-          try {
-              $process = Start-Process powershell -ArgumentList "-File", "test_logic.ps1" -WorkingDirectory $env:GITHUB_WORKSPACE -WindowStyle Minimized -Wait -PassThru -ErrorAction Stop
-          } catch {
-              Write-Error "Failed to execute test_logic.ps1. Error: $_"
-              exit 1
-          }
-          
-          # 4. Adım: Test script'inin çıkış kodunu kontrol et.
-          if ($null -ne $process -and $process.ExitCode -ne 0) {
-              Write-Host "❌ Test script failed with exit code: $($process.ExitCode)"
-              if (Test-Path test_run/stdout.txt) { # Dosya yolu düzeltildi
-                Write-Host "--- Captured output from failed test ---"
-                Get-Content test_run/stdout.txt # Dosya yolu düzeltildi
-                Write-Host "----------------------------------------"
-              }
-              exit 1
-          } elseif ($null -eq $process) {
-              Write-Error "❌ The test process object was not created. Test failed."
-              exit 1
-          } else {
-              echo "✅ Test script completed successfully."
           }
 
       - name: Upload Full Screen Debug Screenshot
@@ -153,13 +131,6 @@ jobs:
           name: ocr-debug-screenshot
           path: test_run/ocr-screenshot.png
 
-      - name: Upload Label Not Found Screenshot on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: error-screenshot-label-not-found
-          path: test_run/error_screenshot_label_not_found.png
-          
       - name: Upload Debug Screenshot on Failure
         if: failure()
         uses: actions/upload-artifact@v4
