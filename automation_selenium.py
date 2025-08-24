@@ -1,23 +1,31 @@
 # automation_selenium.py
 import sys
-import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# The path to the Electron executable after it's built by electron-builder.
-ELECTRON_APP_PATH = "./dist/Construction Assistant - Web.exe"
+# --- FIX 1: Path now matches the `productName` in package.json ---
+ELECTRON_APP_PATH = "./dist/Construction Assistant Web.exe"
 
+# --- FIX 2: Point to the compatible ChromeDriver bundled with Electron ---
+# This avoids version mismatch errors.
+CHROMEDRIVER_PATH = "./node_modules/electron-chromedriver/bin/chromedriver.exe"
+
+driver = None
 try:
     print("Starting Selenium test for Electron app...")
     options = Options()
     # Point Selenium to the Electron app's binary.
     options.binary_location = ELECTRON_APP_PATH
     
-    # Modern Selenium versions manage ChromeDriver automatically.
-    driver = webdriver.Chrome(options=options)
+    # Create a Service object pointing to the correct driver
+    service = Service(executable_path=CHROMEDRIVER_PATH)
+    
+    # Launch the driver
+    driver = webdriver.Chrome(service=service, options=options)
     
     # Use an explicit wait for more reliable tests.
     wait = WebDriverWait(driver, 10)
@@ -48,14 +56,11 @@ except Exception as e:
     print("❌ SELENIUM TEST FAILED")
     print(f"An error occurred: {e}")
     # Take a screenshot on failure for debugging.
-    if 'driver' in locals():
+    if driver:
         driver.save_screenshot('selenium-failure-screenshot.png')
         print("Failure screenshot saved as selenium-failure-screenshot.png")
+    # Re-raise the exception to make sure the script exits with an error code
+    raise e
 finally:
-    if 'driver' in locals():
+    if driver:
         driver.quit()
-    # Exit with a non-zero code on failure.
-    if "e" in locals() and e:
-        sys.exit(1)
-    else:
-        sys.exit(0)

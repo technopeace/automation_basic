@@ -11,9 +11,11 @@
   "license": "ISC",
   "devDependencies": {
     "electron": "^25.0.0",
-    "electron-builder": "^24.0.0"
+    "electron-builder": "^24.0.0",
+    "electron-chromedriver": "*"
   },
   "build": {
+    "productName": "Construction Assistant Web",
     "appId": "com.example.constructionassistant",
     "win": {
       "target": "portable"
