@@ -104,7 +104,7 @@ jobs:
           echo "---------------------------------"
 
           # DÜZELTME 2: Bozulan expected_text kontrolünü orijinal haline getiriyoruz.
-          $expected_text = "Kaydedildi! Isim: Baris Kahraman Yas: 35"
+          $expected_text = "Saved! Name: Baris Kahraman Age: 35"
           if ($output -like "*$expected_text*") {
             echo "✅ TEST PASSED"
             exit 0

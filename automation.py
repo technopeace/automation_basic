@@ -103,7 +103,7 @@ try:
     dialog_width = 400
     dialog_height = 300
     dialog_x = int((screenWidth - dialog_width) / 2)
-    dialog_y = int((screenHeight - dialog_height) / 2) - 50
+    dialog_y = int((screenHeight - dialog_height) / 2) - 30
     dialog_region = (dialog_x, dialog_y, dialog_width, dialog_height)
     text_screenshot = pyautogui.screenshot(region=dialog_region)
     screenshot_path = os.path.join(application_path, "ocr-screenshot.png")
