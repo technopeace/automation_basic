@@ -213,74 +213,31 @@ jobs:
             selenium-failure-screenshot.png
             full-screenshot.png
   test_winappdriver:
-    name: Test with WinAppDriver
-    needs: build
     runs-on: windows-latest
+    needs: build
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for WinAppDriver
-        run: pip install -r requirements_winappdriver.txt
-
-      - name: Install and Start WinAppDriver
+      - name: Install WinAppDriver
         run: |
-          echo "Downloading and installing WinAppDriver..."
-          curl -L -o WinAppDriver.msi "https://github.com/microsoft/WinAppDriver/releases/download/v1.2.1/WindowsApplicationDriver.msi"
-          msiexec /i WinAppDriver.msi /quiet
-          echo "Starting WinAppDriver server in the background..."
+          Invoke-WebRequest -Uri https://github.com/microsoft/WinAppDriver/releases/download/v1.2.1/WindowsApplicationDriver.msi -OutFile WinAppDriver.msi
+          Start-Process msiexec.exe -ArgumentList '/i WinAppDriver.msi /quiet' -Wait
           Start-Process "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
           Start-Sleep -Seconds 5
 
-      - name: Start Tkinter app and get window handle
-        id: get_hwnd
-        shell: pwsh
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt appium-Python-Client
+
+      - name: Start Tkinter App
         run: |
-          echo "Starting Tkinter app..."
-          $process = Start-Process python -ArgumentList "app.py" -PassThru
-          Start-Sleep -Seconds 5
+          Start-Process powershell -ArgumentList "python app.py"
+          Start-Sleep -Seconds 8
 
-          echo "Finding main window handle..."
-          Add-Type @"
-          using System;
-          using System.Runtime.InteropServices;
-          public class Win32 {
-            [DllImport("user32.dll", SetLastError=true)]
-            public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-          }
-"@
-
-          $hwnd = [Win32]::FindWindow($null, "Construction Assistant - Demo")
-          if ($hwnd -eq [IntPtr]::Zero) {
-            echo "❌ Could not find window handle."
-            exit 1
-          }
-
-          $hwndHex = ('{0:X}' -f $hwnd.ToInt64())
-          echo "Window handle: $hwndHex"
-          echo "::set-output name=hwnd::$hwndHex"
-
-      - name: Run WinAppDriver Integration Test
-        shell: pwsh
-        run: |
-          $hwnd = "${{ steps.get_hwnd.outputs.hwnd }}"
-          echo "Running WinAppDriver automation script with window handle: $hwnd"
-          
-          $arguments = "automation_winappdriver.py", $hwnd
-          Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
-          
-          $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
-          echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"; echo $output; echo "--------------------------------------"
-          
-          $expected_text = "🎉 WINAPPDRIVER TEST PASSED"
-          if ($output -like "*$expected_text*") {
-            echo "✅ WINAPPDRIVER TEST SUITE PASSED"
-          } else {
-            echo "❌ WINAPPDRIVER TEST SUITE FAILED"
-            exit 1
-          }
+      - name: Run WinAppDriver Test
+        run: python automation_winappdriver.py
