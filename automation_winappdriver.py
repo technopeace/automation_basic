@@ -10,7 +10,7 @@ from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# --- FIX 2: Force standard output and error streams to use UTF-8 encoding ---
+# Force standard output and error streams to use UTF-8 encoding
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 if sys.stderr.encoding != 'utf-8':
@@ -19,7 +19,6 @@ if sys.stderr.encoding != 'utf-8':
 # Get the absolute path to the app.py script to be tested
 APP_PATH = os.path.abspath("app.py")
 PYTHON_EXE_PATH = sys.executable
-# --- FIX 3: Corrected the WinAppDriver IP Address ---
 WINAPPDRIVER_URL = 'http://127.0.0.1:4723'
 
 driver = None
@@ -27,16 +26,17 @@ app_process = None
 try:
     print("Starting WinAppDriver test...")
 
-    # --- Start app.py as a separate process ---
+    # Start app.py as a separate process
     print(f"Launching app: {PYTHON_EXE_PATH} {APP_PATH}")
     app_process = subprocess.Popen([PYTHON_EXE_PATH, APP_PATH])
     time.sleep(3) # Give the app a moment to launch
 
-    # --- FIX 1: Use AppiumOptions instead of desired_capabilities ---
+    # --- THE FIX: Use the modern W3C capability format with 'appium:' prefix ---
     # First, connect to the entire desktop to find our app's window handle
     desktop_options = AppiumOptions()
     desktop_options.set_capability("platformName", "Windows")
-    desktop_options.set_capability("app", "Root")
+    desktop_options.set_capability("appium:automationName", "Windows")
+    desktop_options.set_capability("appium:app", "Root")
     
     desktop_driver = webdriver.Remote(command_executor=WINAPPDRIVER_URL, options=desktop_options)
     
@@ -48,14 +48,15 @@ try:
     # --- Connect directly to the application window using its handle ---
     app_options = AppiumOptions()
     app_options.set_capability("platformName", "Windows")
-    app_options.set_capability("appTopLevelWindow", app_window_handle_hex)
+    app_options.set_capability("appium:automationName", "Windows")
+    app_options.set_capability("appium:appTopLevelWindow", app_window_handle_hex)
     
     driver = webdriver.Remote(command_executor=WINAPPDRIVER_URL, options=app_options)
     print("Successfully connected to the application window.")
     
     wait = WebDriverWait(driver, 10)
 
-    # --- Interact with elements using Accessibility Properties ---
+    # Interact with elements using Accessibility Properties
     entry_fields = wait.until(EC.presence_of_all_elements_located((AppiumBy.CLASS_NAME, "TEntry")))
     
     entry_fields[0].send_keys("Baris Kahraman")
@@ -90,6 +91,8 @@ finally:
     # Clean up resources
     if driver:
         driver.quit()
+    if desktop_driver:
+        desktop_driver.quit()
     if app_process:
         print("Terminating the application process.")
         app_process.terminate()
