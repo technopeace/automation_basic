@@ -130,28 +130,38 @@ jobs:
       - name: Run Selenium Integration Test
         shell: pwsh
         run: |
-          $electronPath = Join-Path $env:GITHUB_WORKSPACE 'node_modules\electron\dist\electron.exe'
-          $appEntry = Join-Path $env:GITHUB_WORKSPACE 'app_web.js'   # change if your entry is main.js
+          # Start the Flask server in the background and get its process object
+          echo "Starting Flask web server in the background..."
+          $flaskProcess = Start-Process python -ArgumentList "app_web.py" -PassThru
+          Start-Sleep -Seconds 5
+          
+          try {
+            $electronPath = Join-Path $env:GITHUB_WORKSPACE 'node_modules\electron\dist\electron.exe'
+            $appEntry = Join-Path $env:GITHUB_WORKSPACE 'app_web.js'
 
-          Write-Host "Electron binary: $electronPath"
-          Write-Host "App entry file: $appEntry"
+            Write-Host "Electron binary: $electronPath"
+            Write-Host "App entry file: $appEntry"
 
-          $arguments = "automation_selenium.py", $electronPath, $appEntry
-          Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+            $arguments = "automation_selenium.py", "'$electronPath'", "'$appEntry'"
+            Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
 
-          $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
+            $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
 
-          echo "--- SELENIUM AUTOMATION OUTPUT ---"
-          echo $output
-          echo "----------------------------------"
+            echo "--- SELENIUM AUTOMATION OUTPUT ---"
+            echo $output
+            echo "----------------------------------"
 
-          $expected_text = "✅ SELENIUM TEST PASSED"
-          if ($output -like "*$expected_text*") {
-            echo "✅ SELENIUM TEST SUITE PASSED"
-            exit 0
-          } else {
-            echo "❌ SELENIUM TEST SUITE FAILED"
-            exit 1
+            $expected_text = "✅ SELENIUM TEST PASSED"
+            if ($output -like "*$expected_text*") {
+              echo "✅ SELENIUM TEST SUITE PASSED"
+            } else {
+              echo "❌ SELENIUM TEST SUITE FAILED"
+              exit 1
+            }
+          } finally {
+            # This block runs whether the test passes or fails, ensuring the server is always stopped.
+            echo "Stopping Flask web server..."
+            Stop-Process -Id $flaskProcess.Id -Force
           }
 
       - name: Upload Selenium Failure Screenshot

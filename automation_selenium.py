@@ -17,7 +17,7 @@ if sys.stderr.encoding != 'utf-8':
 # -------------------------------------------------------------------
 # Command line arguments:
 #   1. Path to electron.exe (from node_modules)
-#   2. Path to your app entry file (main.js / app_web.js)
+#   2. Path to your app entry file (app_web.js)
 # -------------------------------------------------------------------
 if len(sys.argv) < 3:
     print("❌ ERROR: You must provide the electron.exe path and app entry file.")
@@ -37,8 +37,9 @@ try:
 
     options = Options()
     options.binary_location = ELECTRON_BINARY_PATH
-    # Tell Electron which app entry to load
-    options.add_argument(f"app={APP_ENTRY_FILE}")
+    
+    # --- THE FIX: Pass the app entry file as a direct argument, not a named parameter ---
+    options.add_argument(APP_ENTRY_FILE)
 
     service = Service(executable_path=CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
