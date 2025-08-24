@@ -6,3 +6,5 @@ pyinstaller
 numpy<2
 opencv-python
 pygetwindow
+Flask
+selenium

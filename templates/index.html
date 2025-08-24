@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Construction Assistant - Web</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; color: #333; }
+        h1 { color: #444; }
+        label { font-size: 1.2em; }
+        input, button { font-size: 1.5em; margin: 10px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
+        button { background-color: #007bff; color: white; cursor: pointer; border: none; }
+        button:hover { background-color: #0056b3; }
+        #response { margin-top: 20px; font-size: 1.2em; white-space: pre-wrap; font-weight: bold; color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>Construction Assistant - Web</h1>
+    
+    <label for="name">Name:</label><br>
+    <input type="text" id="name"><br>
+    
+    <label for="age">Age:</label><br>
+    <input type="text" id="age"><br>
+    
+    <button id="save-btn">Save</button>
+    
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            const name = document.getElementById('name').value;
+            const age = document.getElementById('age').value;
+            const responseDiv = document.getElementById('response');
+
+            const response = await fetch('/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, age })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                responseDiv.textContent = result.message;
+                responseDiv.style.color = '#28a745';
+            } else {
+                responseDiv.textContent = `Error: ${result.error}`;
+                responseDiv.style.color = '#dc3545';
+            }
+        });
+    </script>
+</body>
+</html>

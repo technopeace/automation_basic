@@ -1,0 +1,22 @@
+{
+  "name": "construction-assistant-web",
+  "version": "1.0.0",
+  "description": "Web version of the Construction Assistant, packaged with Electron.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "author": "Automation Demo",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.example.constructionassistant",
+    "win": {
+      "target": "portable"
+    }
+  }
+}

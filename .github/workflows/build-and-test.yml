@@ -28,7 +28,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Run PyInstaller
+      - name: Build PyAutoGUI Automation Executable
         run: pyinstaller --name "Automation" --onefile --windowed --add-data "isim_label.png;." automation.py
 
       - name: Prepare Release Folder
@@ -52,7 +52,8 @@ jobs:
           name: windows-release-package
           path: "ConstructionAssistant-${{ steps.version.outputs.tag }}.zip"
 
-  test:
+  test_pyautogui:
+    name: Test with PyAutoGUI
     needs: build
     runs-on: windows-latest
 
@@ -79,36 +80,28 @@ jobs:
           Start-Process "C:\Program Files\TightVNC\tvnserver.exe" -ArgumentList "-run"
           Start-Sleep -Seconds 5
 
-      - name: Run Integration Test
+      - name: Run PyAutoGUI Integration Test
         shell: pwsh
         run: |
-          echo "Starting target application..."
-          # FIX 1: We start the window maximized to definitively solve any focus issues.
+          echo "Starting target Tkinter application..."
           Start-Process python -ArgumentList "app.py" -WindowStyle Maximized
           Start-Sleep -Seconds 7
 
-          echo "Running Automation.exe..."
+          echo "Running PyAutoGUI automation..."
           Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
           
-          $stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
-          $stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
-          $output = $stdout + $stderr
+          $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
           
-          echo "--- AUTOMATION OUTPUT ---"
+          echo "--- PyAutoGUI AUTOMATION OUTPUT ---"
           echo $output
-          echo "--------------------------------"
-
-          # DEBUG: List files after the test to diagnose any artifact issues.
-          echo "--- FILE LISTING AFTER TEST ---"
-          Get-ChildItem -Path . -Recurse
-          echo "---------------------------------"
+          echo "-----------------------------------"
 
           $expected_text = "Saved! Name: Baris Kahraman Age: 28"
           if ($output -like "*$expected_text*") {
-            echo "✅ TEST PASSED, READ AND EXPECTED MATCHED"
+            echo "✅ PyAutoGUI TEST PASSED"
             exit 0
           } else {
-            echo "❌ TEST FAILED, READ AND EXPECTED DID NOT MATCHED"
+            echo "❌ PyAutoGUI TEST FAILED"
             echo "Read:"
             echo $output
             echo "Expected:"
@@ -116,23 +109,72 @@ jobs:
             exit 1
           }
 
-      - name: Upload Full Screen Debug Screenshot
+      - name: Upload PyAutoGUI Screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: full-debug-screenshot
-          path: test_run/full-screenshot.png
+          name: pyautogui-screenshots
+          path: |
+            test_run/full-screenshot.png
+            test_run/ocr-screenshot.png
 
-      - name: Upload OCR Debug Screenshot
-        if: always()
-        uses: actions/upload-artifact@v4
+  test_selenium:
+    name: Test with Selenium
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: ocr-debug-screenshot
-          path: test_run/ocr-screenshot.png
+          python-version: '3.11'
 
-      - name: Upload Debug Screenshot on Failure
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Python dependencies for web test
+        run: pip install -r requirements_web.txt
+      
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Build Electron App
+        run: npm run dist
+        
+      - name: Run Selenium Integration Test
+        shell: pwsh
+        run: |
+          echo "Starting Flask web server in the background..."
+          Start-Process python -ArgumentList "app_web.py"
+          Start-Sleep -Seconds 5
+
+          echo "Running Selenium automation script..."
+          Start-Process python -ArgumentList "automation_selenium.py" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+          
+          $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
+          
+          echo "--- SELENIUM AUTOMATION OUTPUT ---"
+          echo $output
+          echo "----------------------------------"
+
+          $expected_text = "✅ SELENIUM TEST PASSED"
+          if ($output -like "*$expected_text*") {
+            echo "✅ SELENIUM TEST SUITE PASSED"
+            exit 0
+          } else {
+            echo "❌ SELENIUM TEST SUITE FAILED"
+            exit 1
+          }
+
+      - name: Upload Selenium Failure Screenshot
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: debug-screenshots
-          path: debug-screenshot.png
+          name: selenium-failure-screenshot
+          path: selenium-failure-screenshot.png
