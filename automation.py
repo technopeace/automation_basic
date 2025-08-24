@@ -65,6 +65,8 @@ try:
         pyautogui.click(name_label_location.x, name_label_location.y + 20)
         print("Clicked on name input field.")
         time.sleep(0.5)
+        pyautogui.press("tab")
+        time.sleep(0.5)
         pyperclip.copy("Baris Kahraman")
         pyautogui.hotkey("ctrl", "v")
         print("Name entered: Baris Kahraman")
