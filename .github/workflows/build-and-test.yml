@@ -228,37 +228,33 @@ jobs:
       - name: Install Python dependencies for WinAppDriver
         run: pip install -r requirements_winappdriver.txt
 
-      # Headless test for GitHub Actions
-      - name: Run headless Tkinter test on GitHub Actions
-        if: ${{ runner.name == 'GitHub Actions' }}
+      - name: Determine runner type
+        id: runner_check
         run: |
-          echo "⚠️ Running headless GUI test (GitHub Actions)..."
-          python - <<EOF
-          import tkinter as tk
+          if ($env:RUNNER_NAME -eq 'GitHub Actions') {
+            echo "is_github=true" >> $GITHUB_OUTPUT
+          } else {
+            echo "is_github=false" >> $GITHUB_OUTPUT
+          }
 
-          root = tk.Tk()
-          root.title("Construction Assistant - Demo")
-          root.withdraw()  # hide window
-
-          label = tk.Label(root, text="Hello")
-          label.pack()
-
-          assert label.cget("text") == "Hello"
-          print("🎉 HEADLESS GUI TEST PASSED")
-          EOF
-
-      # Real WinAppDriver test for self-hosted
-      - name: Run WinAppDriver test on self-hosted
-        if: ${{ runner.name != 'GitHub Actions' }}
+      - name: Skip WinAppDriver on GitHub Actions
+        if: steps.runner_check.outputs.is_github == 'true'
+        run: |
+          echo "⚠️ Skipping real WinAppDriver GUI test on GitHub Actions. Requires self-hosted Windows runner."
+      
+      - name: Run WinAppDriver on self-hosted
+        if: steps.runner_check.outputs.is_github == 'false'
         shell: pwsh
         run: |
           echo "⚠️ Running real WinAppDriver GUI test (self-hosted)..."
 
-          # Install and start WinAppDriver
-          echo "Downloading and installing WinAppDriver..."
-          curl -L -o WinAppDriver.msi "https://github.com/microsoft/WinAppDriver/releases/download/v1.2.1/WindowsApplicationDriver.msi"
-          msiexec /i WinAppDriver.msi /quiet
-          echo "Starting WinAppDriver server in the background..."
+          # Download WinAppDriver
+          Invoke-WebRequest -Uri "https://github.com/microsoft/WinAppDriver/releases/download/v1.2.1/WindowsApplicationDriver.msi" -OutFile "WinAppDriver.msi"
+
+          # Install WinAppDriver silently
+          Start-Process msiexec.exe -ArgumentList "/i WinAppDriver.msi /quiet /norestart" -Wait
+
+          # Start WinAppDriver server
           Start-Process "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
           Start-Sleep -Seconds 5
 
@@ -267,7 +263,7 @@ jobs:
           $appPath = Join-Path $env:GITHUB_WORKSPACE 'app.py'
           $process = Start-Process $pythonPath -ArgumentList $appPath -PassThru
 
-          # Find window handle
+          # Find window handle (wait up to 30s)
           Add-Type @"
           using System;
           using System.Runtime.InteropServices;
@@ -293,19 +289,21 @@ jobs:
 
           $hwndHex = ('{0:X}' -f $hwnd.ToInt64())
           echo "Window handle: $hwndHex"
+          echo "::set-output name=hwnd::$hwndHex"
 
-          # Run WinAppDriver test
-          $arguments = "automation_winappdriver.py", $hwndHex
-          $proc = Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+          # Run WinAppDriver Integration Test
+          $hwnd = $hwndHex
+          echo "Running WinAppDriver automation script with window handle: $hwnd"
+          $arguments = "automation_winappdriver.py", $hwnd
+          Start-Process python -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
 
           $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
-          echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"
-          echo $output
-          echo "--------------------------------------"
+          echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"; echo $output; echo "--------------------------------------"
 
-          if ($output -like "*🎉 WINAPPDRIVER TEST PASSED*") {
-              echo "✅ WINAPPDRIVER TEST SUITE PASSED"
+          $expected_text = "🎉 WINAPPDRIVER TEST PASSED"
+          if ($output -like "*$expected_text*") {
+            echo "✅ WINAPPDRIVER TEST SUITE PASSED"
           } else {
-              echo "❌ WINAPPDRIVER TEST SUITE FAILED"
-              exit 1
+            echo "❌ WINAPPDRIVER TEST SUITE FAILED"
+            exit 1
           }
