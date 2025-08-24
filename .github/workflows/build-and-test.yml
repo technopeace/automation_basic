@@ -205,3 +205,56 @@ jobs:
           path: |
             selenium-failure-screenshot.png
             full-screenshot.png
+  test_winappdriver:
+    name: Test with WinAppDriver
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Python dependencies for WinAppDriver
+        run: pip install -r requirements_winappdriver.txt
+
+      - name: Install and Start WinAppDriver
+        run: |
+          echo "Downloading and installing WinAppDriver..."
+          curl -L -o WinAppDriver.msi "https://github.com/microsoft/WinAppDriver/releases/download/v1.2.1/WindowsApplicationDriver.msi"
+          msiexec /i WinAppDriver.msi /quiet
+          echo "Starting WinAppDriver server in the background..."
+          Start-Process "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
+          Start-Sleep -Seconds 5
+
+      - name: Run WinAppDriver Integration Test
+        shell: pwsh
+        run: |
+          echo "Running WinAppDriver automation script..."
+          Start-Process python -ArgumentList "automation_winappdriver.py" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+          
+          $output = (Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue) + (Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue)
+
+          echo "--- WINAPPDRIVER AUTOMATION OUTPUT ---"
+          echo $output
+          echo "--------------------------------------"
+          
+          $expected_text = "✅ WINAPPDRIVER TEST PASSED"
+          if ($output -like "*$expected_text*") {
+            echo "✅ WINAPPDRIVER TEST SUITE PASSED"
+          } else {
+            echo "❌ WINAPPDRIVER TEST SUITE FAILED"
+            exit 1
+          }
+
+      - name: Upload Failure Screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: winappdriver-failure-screenshot
+          # The Python script doesn't create a screenshot, this step is a placeholder
+          # To make it work, add screenshot logic to the Python script's except block
+          path: . # Placeholder path
