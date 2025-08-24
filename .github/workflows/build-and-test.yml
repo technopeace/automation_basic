@@ -80,14 +80,16 @@ jobs:
           Start-Sleep -Seconds 5
 
       - name: Run Integration Test
+        shell: pwsh
         env:
           PYTHONUTF8: "1"
         run: |
-          echo "Starting target application..."
+          Write-Output "Starting GUI app (app.py)..."
+          # GUI görünsün
           Start-Process python -ArgumentList "app.py" -WindowStyle Normal
           Start-Sleep -Seconds 5
 
-          echo "Taking a debug screenshot..."
+          Write-Output "Taking a debug screenshot..."
           Add-Type -AssemblyName System.Windows.Forms
           $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
           $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
@@ -95,31 +97,34 @@ jobs:
           $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
           $bitmap.Save("debug-screenshot.png", [System.Drawing.Imaging.ImageFormat]::Png)
 
-          echo "Running Automation.exe..."
-          $process = Start-Process -FilePath "./test_run/Automation.exe" -PassThru -Wait -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+          Write-Output "Running Automation.exe (hidden, no GUI/log window)..."
+          $process = Start-Process -FilePath "./test_run/Automation.exe" `
+            -WindowStyle Hidden `
+            -RedirectStandardOutput "stdout.txt" `
+            -RedirectStandardError "stderr.txt" `
+            -PassThru -Wait
           
           $stdout = Get-Content stdout.txt -Raw -ErrorAction SilentlyContinue
           $stderr = Get-Content stderr.txt -Raw -ErrorAction SilentlyContinue
           $output = $stdout + $stderr
           
-          echo "--- AUTOMATION OUTPUT ---"
-          echo $output
-          echo "--------------------------------"
+          Write-Output "--- AUTOMATION OUTPUT ---"
+          Write-Output $output
+          Write-Output "--------------------------------"
 
           $expected_text = "Kaydedildi! Isim: Baris Kahraman Yas: 35"
           if ($output -like "*$expected_text*") {
-            echo "✅ TEST PASSED"
+            Write-Output "✅ TEST PASSED"
             exit 0
           } else {
-            echo "❌ TEST FAILED"
-            echo "Read:"
-            echo $output
-            echo "Expected:"
-            echo $expected_text
+            Write-Output "❌ TEST FAILED"
+            Write-Output "Read:"
+            Write-Output $output
+            Write-Output "Expected:"
+            Write-Output $expected_text
             exit 1
           }
 
-      # --- YENİ EKLENEN ADIM (TAM EKRAN GÖRÜNTÜSÜ) ---
       - name: Upload Full Screen Debug Screenshot
         if: always()
         uses: actions/upload-artifact@v4
@@ -127,7 +132,6 @@ jobs:
           name: full-debug-screenshot
           path: test_run/full-screenshot.png
 
-      # --- ÖNCEKİ OCR EKRAN GÖRÜNTÜSÜ YÜKLEME ADIMI ---
       - name: Upload OCR Debug Screenshot
         if: always()
         uses: actions/upload-artifact@v4
